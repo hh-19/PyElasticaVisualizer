@@ -15,11 +15,11 @@ The visualizer tool is designed to work with data produced by PyElastica simulat
                            }
 
     pyelastica_sim.collect_diagnostics(object1).using(
-    VisualizerDictCallBack, step_skip=50, callback_params=postprocessing_dict["object1"]
+    VisualizerDictCallBack, step_skip=step_skip, callback_params=postprocessing_dict["object1"]
     )
 
-    pyelastica_sim.collect_diagnostics(object1).using(
-    VisualizerDictCallBack, step_skip=50, callback_params=postprocessing_dict["object1"]
+    pyelastica_sim.collect_diagnostics(object2).using(
+    VisualizerDictCallBack, step_skip=step_skip, callback_params=postprocessing_dict["object2"]
     )
 
     ...
