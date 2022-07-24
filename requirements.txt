@@ -1,0 +1,6 @@
+pyelastica
+numpy
+vispy
+
+# Vispy requires a backend to run the window, such as PyQt. 
+# More information can be found in Vispy documentation

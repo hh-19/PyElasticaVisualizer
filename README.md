@@ -8,7 +8,7 @@ The visualizer tool is designed to work with data produced by PyElastica simulat
 
 1. Collect simulation diagnostics using `VisualizerDictCallBack` from `utils.py`
 
-    ```
+    ```python
     postprocessing_dict = {"object1": defaultdict(list),
                            "object2": defaultdict(list),
                            ...
@@ -25,9 +25,23 @@ The visualizer tool is designed to work with data produced by PyElastica simulat
     ...
 
     ```
+
     Note the `VisualizerDictCallBack` must be attached to each object in the system, so it can be cumbersome when there are many objects in a system.
 
     The postprocessing dict must also be specified as done above.
 
-2. Using 
+2. Use the `generate_visualization_dict` function from `utils.py` to reformat postprocessing dictionary into the correct format to pass to the Visualizer
 
+    ```python
+    visualization_dict = generate_visualization_dict(postprocessing_dict, grouping_parameters=None)
+    ```
+
+    `grouping_parameters` is a dictionary passed to the function that can be used to specify groups of objects in the simulation and define paramters for this group to be used when visualizing these objects eg. color, level of detail etc.
+    The format is likely to change a lot as more features are added to visualizer.
+
+3. Initialise and run the visualizer
+
+    ```python
+    Visualizer = Visualizer(visualization_dict)
+    Visualizer.run()
+    ```
