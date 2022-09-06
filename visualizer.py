@@ -63,9 +63,10 @@ class Visualizer:
 
     """
 
-    def __init__(self, visualization_dict: dict) -> None:
+    def __init__(self, visualization_dict: dict, canvas_size=(800, 608)) -> None:
 
         self.visualization_dict = visualization_dict
+        self.canvas_size = canvas_size
         self.camera_type = "turntable"
         self.objects = {}
         self.meshdata = {}
@@ -152,7 +153,7 @@ class Visualizer:
 
         self.app = app.application.Application()
         self.canvas = scene.SceneCanvas(
-            keys="interactive", size=(800, 600), bgcolor="black"
+            keys="interactive", size=self.canvas_size, bgcolor="black"
         )
         # Prints FPS to console for measuring performance
         self.canvas.measure_fps()
@@ -231,7 +232,7 @@ class Visualizer:
 
         if timers is None:
             timers = []
-            
+
         self.iterator_index = 0
 
         # Maximum number of updates allowed
