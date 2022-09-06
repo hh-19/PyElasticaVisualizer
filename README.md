@@ -45,4 +45,5 @@ The visualizer tool is designed to work with data produced by PyElastica simulat
     Visualizer = Visualizer(visualization_dict)
     Visualizer.run()
     ```
-There are a several PyElastica example simulations in the `examples/` directory which have been modified to be visualized. 
+
+There are a several PyElastica example simulations in the `examples/` directory which have been modified to be visualized, and can be used as examples.
