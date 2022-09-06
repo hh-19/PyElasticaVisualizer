@@ -4,6 +4,7 @@ Modified to be visualized
 
 __doc__ = """Snake friction case from X. Zhang et. al. Nat. Comm. 2021"""
 
+from fcntl import F_GETLEASE
 import sys
 import os
 import numpy as np
@@ -28,7 +29,13 @@ class SnakeSimulator(BaseSystemCollection, Constraints, Forcing, CallBacks):
 
 
 def run_snake(
-    b_coeff, PLOT_FIGURE=False, SAVE_FIGURE=False, SAVE_VIDEO=False, SAVE_RESULTS=True, VISUALIZE=True
+    b_coeff,
+    PLOT_FIGURE=False,
+    SAVE_FIGURE=False,
+    SAVE_VIDEO=False,
+    SAVE_RESULTS=True,
+    VISUALIZE=False,
+    SAVE_VISUALIZATION=False,
 ):
     # Initialize the simulation class
     snake_sim = SnakeSimulator()
@@ -153,14 +160,16 @@ def run_snake(
     # Postprocessing dict for visualization
     postprocessing_dict = {"shearable_rod": defaultdict(list)}
     snake_sim.collect_diagnostics(shearable_rod).using(
-        VisualizerDictCallBack, step_skip=step_skip, callback_params=postprocessing_dict["shearable_rod"]
+        VisualizerDictCallBack,
+        step_skip=step_skip,
+        callback_params=postprocessing_dict["shearable_rod"],
     )
 
     snake_sim.finalize()
 
     timestepper = PositionVerlet()
     integrate(timestepper, snake_sim, final_time, total_steps)
-    
+
     if SAVE_RESULTS:
         import pickle
 
@@ -169,14 +178,20 @@ def run_snake(
         pickle.dump(postprocessing_dict, file)
         file.close()
 
-
     ############################### Visualizing ###############################
 
     if VISUALIZE:
 
         visualization_dict = generate_visualization_dict(postprocessing_dict)
         visualizer = Visualizer(visualization_dict)
-        visualizer.run()
+
+        if SAVE_VISUALIZATION:
+            visualizer.run(
+                video_fname="examples/ContinuumSnakeCase/continuum_snake_visualization.mp4"
+            )
+
+        else:
+            visualizer.run()
 
     ###########################################################################
 
@@ -204,10 +219,12 @@ def run_snake(
 if __name__ == "__main__":
 
     # Options
-    PLOT_FIGURE = True
-    SAVE_FIGURE = True
-    SAVE_VIDEO = True
+    PLOT_FIGURE = False
+    SAVE_FIGURE = False
+    SAVE_VIDEO = False
     SAVE_RESULTS = True
+    VISUALIZE = False
+    SAVE_VISUALIZATION = False
     CMA_OPTION = False
 
     if CMA_OPTION:
@@ -251,7 +268,13 @@ if __name__ == "__main__":
 
         # run the simulation
         [avg_forward, avg_lateral, pp_list] = run_snake(
-            t_coeff_optimized, PLOT_FIGURE, SAVE_FIGURE, SAVE_VIDEO, SAVE_RESULTS
+            b_coeff=t_coeff_optimized,
+            PLOT_FIGURE=PLOT_FIGURE,
+            SAVE_FIGURE=SAVE_FIGURE,
+            SAVE_VIDEO=SAVE_VIDEO,
+            SAVE_RESULTS=SAVE_RESULTS,
+            VISUALIZE=VISUALIZE,
+            SAVE_VISUALIZATION=SAVE_VISUALIZATION,
         )
 
         print("average forward velocity:", avg_forward)

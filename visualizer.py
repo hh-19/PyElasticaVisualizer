@@ -2,6 +2,7 @@ import numpy as np
 
 from tqdm import tqdm
 from vispy import app, scene
+from vispy.gloo.util import _screenshot
 
 
 class Visualizer:
@@ -60,11 +61,12 @@ class Visualizer:
             run, to prevent IndexErrors.
             TODO: See comments further down about ways to improve the usage of this
 
-    """    
+    """
 
-    def __init__(self, visualization_dict: dict) -> None:
+    def __init__(self, visualization_dict: dict, canvas_size=(800, 608)) -> None:
 
         self.visualization_dict = visualization_dict
+        self.canvas_size = canvas_size
         self.camera_type = "turntable"
         self.objects = {}
         self.meshdata = {}
@@ -108,12 +110,12 @@ class Visualizer:
                     range(len(object_parameters["position"])),
                     desc=f"Object {num+1}/{number_of_objects}",
                 ):
-                    
+
                     # Object position must be transposed from the way that PyElastica
-                    # saves it during callback. 
+                    # saves it during callback.
                     # TODO: Transpose position data during generation of visualization_dict
                     #  instead of here
- 
+
                     object_position = object_parameters["position"][i].transpose()[:-1]
                     object_radius = object_parameters["radius"][i]
 
@@ -151,7 +153,7 @@ class Visualizer:
 
         self.app = app.application.Application()
         self.canvas = scene.SceneCanvas(
-            keys="interactive", size=(800, 600), bgcolor="black"
+            keys="interactive", size=self.canvas_size, bgcolor="black"
         )
         # Prints FPS to console for measuring performance
         self.canvas.measure_fps()
@@ -212,7 +214,12 @@ class Visualizer:
                 f"{self.camera_type} is not a valid camera option. Please chose another camera."
             )
 
-    def _initialize_timers(self):
+    def _initialize_timers(self, timers=None):
+        """Method to intialize timers to be used in app
+
+        Args:
+            timers (list str): List of timers to be initialized. Defaults to None.
+        """
 
         # for timer in self.timers:
 
@@ -222,6 +229,9 @@ class Visualizer:
         # the update timer
         # TODO: Potentially look at seperate iterator indexes as more app timers are added or varying incrementation
         # eg. for increased playback speed iterator will need to be incremented more
+
+        if timers is None:
+            timers = []
 
         self.iterator_index = 0
 
@@ -239,6 +249,15 @@ class Visualizer:
             app=self.app,
         )
 
+        if "save_video" in timers:
+
+            self.app_timers["save_video"] = app.Timer(
+                interval="auto",
+                connect=self._save_video_timer,
+                start=True,
+                app=self.app,
+            )
+
     def _update_objects_timer(self, event):
         """The app timer to update the objects between frames
 
@@ -253,7 +272,15 @@ class Visualizer:
 
         #
         if self.iterator_index >= self.max_updates:
-            self.app_timers["update_objects"].stop()
+            # Once the update timer has reached its stopping point all other
+            # timers will be closed as well
+
+            for timers in self.app_timers:
+                self.app_timers[timers].stop()
+
+            if self.save_video == True:
+                self.video_writer.close()
+
             self.canvas.close()
             return
 
@@ -263,7 +290,7 @@ class Visualizer:
             object_type = object_parameters["type"]
 
             if object_type == "rod":
-                
+
                 # Updates the object in the scene with the next meshdata
                 new_meshdata = self.meshdata[object][self.iterator_index]
                 self.objects[object].set_data(meshdata=new_meshdata)
@@ -271,17 +298,41 @@ class Visualizer:
         # time_list = self.visualization_dict["time"]
         self.time_text.text = f"Time: {self.time[self.iterator_index]:.4f}"
 
-    def run(self):
+    def _save_video_timer(self, event):
+        """App timer to write simulation frames to video file
+
+        """
+
+        frame = _screenshot()
+        self.video_writer.append_data(frame)
+
+    def run(self, video_fname=None):
         """Runs the visualization
 
         Runs the different initialisation/set up methods before showing the 
         Vispy canvas and starting the Vispy app and its' timers
+
+        Args:
+            video_fname (str, optional): The file path to save the video
+            output of the simulation. If None, then no video is saved.
+            Defaults to None. 
         """
 
         self._calculate_meshdata()
         self._initalize_scene()
-        self._initialize_timers()
         self._initialize_camera()
+
+        if video_fname is not None:
+
+            from imageio import get_writer
+
+            self.save_video = True
+            self.video_writer = get_writer(video_fname, fps=60, quality=10)
+            self._initialize_timers(timers=["save_video"])
+
+        else:
+            self._initialize_timers()
+
         self.canvas.show()
         self.app.run()
 
