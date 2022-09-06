@@ -213,11 +213,11 @@ class Visualizer:
                 f"{self.camera_type} is not a valid camera option. Please chose another camera."
             )
 
-    def _initialize_timers(self, timers):
+    def _initialize_timers(self, timers=None):
         """Method to intialize timers to be used in app
 
         Args:
-            timers (list str): List of timers to be initialized
+            timers (list str): List of timers to be initialized. Defaults to None.
         """
 
         # for timer in self.timers:
@@ -229,6 +229,9 @@ class Visualizer:
         # TODO: Potentially look at seperate iterator indexes as more app timers are added or varying incrementation
         # eg. for increased playback speed iterator will need to be incremented more
 
+        if timers is None:
+            timers = []
+            
         self.iterator_index = 0
 
         # Maximum number of updates allowed

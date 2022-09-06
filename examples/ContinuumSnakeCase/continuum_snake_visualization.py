@@ -10,7 +10,7 @@ sys.path.insert(0, "")
 from visualizer import Visualizer
 from utils import generate_visualization_dict
 
-SAVE_VISUALIZATION = False
+SAVE_VISUALIZATION = True
 
 with open("examples/ContinuumSnakeCase/continuum_snake.dat", "rb") as f:
     postprocessing_dict = pickle.load(f)
