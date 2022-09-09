@@ -4,7 +4,6 @@ Modified to be visualized
 
 __doc__ = """Snake friction case from X. Zhang et. al. Nat. Comm. 2021"""
 
-from fcntl import F_GETLEASE
 import sys
 import os
 import numpy as np
