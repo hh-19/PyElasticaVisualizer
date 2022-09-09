@@ -259,7 +259,7 @@ class Visualizer:
             )
 
     def _update_objects_timer(self, event):
-        """The app timer to update the objects between frames
+        """The app timer to update the objects between frames, and is the main timer for the app
 
         Args:
             event : Parameter required for Vispy app timers
@@ -270,7 +270,6 @@ class Visualizer:
         # Stop the timer update to prevent list indexing beyond
         # the size of the list
 
-        #
         if self.iterator_index >= self.max_updates:
             # Once the update timer has reached its stopping point all other
             # timers will be closed as well
@@ -294,6 +293,10 @@ class Visualizer:
                 # Updates the object in the scene with the next meshdata
                 new_meshdata = self.meshdata[object][self.iterator_index]
                 self.objects[object].set_data(meshdata=new_meshdata)
+
+        if self.iterator_index % 10 == 0:
+
+            self.view.camera.set_range()
 
         # time_list = self.visualization_dict["time"]
         self.time_text.text = f"Time: {self.time[self.iterator_index]:.4f}"
