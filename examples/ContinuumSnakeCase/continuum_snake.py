@@ -251,6 +251,7 @@ if __name__ == "__main__":
         # if SAVE_OPTIMIZED_COEFFICIENTS:
         #     assert filename_data != "", "provide a file name for coefficients"
         #     np.savetxt(filename_data, optimized_spline_coefficients, delimiter=",")
+        pass
 
     else:
         # Add muscle forces on the rod
