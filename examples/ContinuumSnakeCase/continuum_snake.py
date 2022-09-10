@@ -4,7 +4,6 @@ Modified to be visualized
 
 __doc__ = """Snake friction case from X. Zhang et. al. Nat. Comm. 2021"""
 
-from fcntl import F_GETLEASE
 import sys
 import os
 import numpy as np
@@ -222,36 +221,37 @@ if __name__ == "__main__":
     PLOT_FIGURE = False
     SAVE_FIGURE = False
     SAVE_VIDEO = False
-    SAVE_RESULTS = True
-    VISUALIZE = False
+    SAVE_RESULTS = False
+    VISUALIZE = True
     SAVE_VISUALIZATION = False
     CMA_OPTION = False
 
     if CMA_OPTION:
-        import cma
+        # import cma
 
-        SAVE_OPTIMIZED_COEFFICIENTS = False
+        # SAVE_OPTIMIZED_COEFFICIENTS = False
 
-        def optimize_snake(spline_coefficient):
-            [avg_forward, _, _] = run_snake(
-                spline_coefficient,
-                PLOT_FIGURE=False,
-                SAVE_FIGURE=False,
-                SAVE_VIDEO=False,
-                SAVE_RESULTS=True,
-            )
-            return -avg_forward
+        # def optimize_snake(spline_coefficient):
+        #     [avg_forward, _, _] = run_snake(
+        #         spline_coefficient,
+        #         PLOT_FIGURE=False,
+        #         SAVE_FIGURE=False,
+        #         SAVE_VIDEO=False,
+        #         SAVE_RESULTS=True,
+        #     )
+        #     return -avg_forward
 
-        # Optimize snake for forward velocity. In cma.fmin first input is function
-        # to be optimized, second input is initial guess for coefficients you are optimizing
-        # for and third input is standard deviation you initially set.
-        optimized_spline_coefficients = cma.fmin(optimize_snake, 7 * [0], 0.5)
+        # # Optimize snake for forward velocity. In cma.fmin first input is function
+        # # to be optimized, second input is initial guess for coefficients you are optimizing
+        # # for and third input is standard deviation you initially set.
+        # optimized_spline_coefficients = cma.fmin(optimize_snake, 7 * [0], 0.5)
 
-        # Save the optimized coefficients to a file
-        filename_data = "optimized_coefficients.txt"
-        if SAVE_OPTIMIZED_COEFFICIENTS:
-            assert filename_data != "", "provide a file name for coefficients"
-            np.savetxt(filename_data, optimized_spline_coefficients, delimiter=",")
+        # # Save the optimized coefficients to a file
+        # filename_data = "optimized_coefficients.txt"
+        # if SAVE_OPTIMIZED_COEFFICIENTS:
+        #     assert filename_data != "", "provide a file name for coefficients"
+        #     np.savetxt(filename_data, optimized_spline_coefficients, delimiter=",")
+        pass
 
     else:
         # Add muscle forces on the rod
