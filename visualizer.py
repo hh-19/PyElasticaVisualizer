@@ -68,6 +68,7 @@ class Visualizer:
         self.visualization_dict = visualization_dict
         self.canvas_size = canvas_size
         self.camera_type = "turntable"
+        self.save_video = False
         self.objects = {}
         self.meshdata = {}
         self.app_timers = {}
