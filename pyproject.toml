@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "pyelasticavisualizer"
+version = "0.1.0"
+description = "Visualization tools for PyElastica. May be incorporated within PyElastica in the future."
+authors = ["Hamzah <hamzah_hashim@hotmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.7,<3.11"
+pyelastica = "^0.3.0"
+numpy = "^1.19.2"
+vispy = "^0.10.0"
+PyQt5 = "^5.15"
+imageio = "^2.4.0"
+imageio-ffmpeg = "^0.4.0"
+tqdm = "^4.61.1"
+# A list of all of the optional dependencies, some of which are included in the
+# below `extras`. They can be opted into by apps.
+matplotlib = {version = "^3.3.2", optional = true, extras = ["examples"]}
+
+[tool.poetry.extras]
+examples = [
+  "matplotlib",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
