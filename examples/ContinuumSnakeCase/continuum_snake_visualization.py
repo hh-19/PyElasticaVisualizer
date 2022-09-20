@@ -20,6 +20,7 @@ visualization_dict = generate_visualization_dict(postprocessing_dict)
 Visualizer = Visualizer(visualization_dict)
 Visualizer.add_axis("x")
 Visualizer.add_axis("y")
+Visualizer.add_axis("z")
 
 if SAVE_VISUALIZATION:
 

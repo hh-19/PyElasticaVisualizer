@@ -7,60 +7,60 @@ from vispy.gloo.util import _screenshot
 
 
 class Visualizer:
-    """Visualizer class for visualising PyElastica simulations 
+    """Visualizer class for visualising PyElastica simulations
 
-        Attributes
-        ----------
+    Attributes
+    ----------
 
-        visualization_dict: dict
-            Dictionary containing the data and parameters for each object
-            in the simulation to be visualized. Visualization dictionary
-            can be created using the help of utility functions provided.
-        camera_type: str
-            The camera type to be used during visualization.
-            TODO: Allow more options and to be specified by user (potentially
-            as a @property)
-        objects: dict
-            Dictionary of Vispy.scene.visual instances of the simulation objects to
-            be visualized. Key is a string of the name of the object as given in the 
-            visualization dict, and the value is a Vispy.scene.visual instance
-        meshdata: dict
-            Dictionary of the meshdata for each object to be visualized. Key is the 
-            string of the name of the object as given in the visualization dict and
-            the value is a list of meshdata 
-        app_timers: dict
-            A dictionary of the Vispy app timers. Key is a string of the name of 
-            the timer and the value is a Vispy.app.Timer instance
-            TODO: Create more timers and allow for timers to be created by users and 
-            added 
-        app: Vispy.app.application.Application()
-            The Vispy app instance. 
-            TODO: Think about whether it would be better
-            for user to create instance of app and then provide it to the class as
-            potentially recommended by the Vispy maintainers
-        canvas: Vispy.scene.SceneCanvas
-            The Vispy scene instance. 
-            TODO: Think about whether it would be better
-            for user to create instance of the scene and then provide it to the class as
-            potentially recommended by the Vispy maintainers.
-            TODO: Also scene instance has parameters and can be customised eg. background
-            color and window size. Think about the best way to implement this.
-        view: Vispy.view
-            The view(s) in the canvas. 
-            TODO: Potential future features include addition views in addition to the 
-            central widget such as side graph views etc.
-        time: list
-            List of the the simulation times. Used to indicate the simulation time
-            while the simulation is being visualized.
-        time_text: Vispy.scene.text
-            Vispy instance to display the time in the visualization window.
-            TODO: Perhaps allow for ways for parameters of the text to be specified
-            eg. Color, size etc.
-            TODO: Enable timer to be turned on or off
-        max_updates: int
-            The maximum number of updates/number of times the app timers can
-            run, to prevent IndexErrors.
-            TODO: See comments further down about ways to improve the usage of this
+    visualization_dict: dict
+        Dictionary containing the data and parameters for each object
+        in the simulation to be visualized. Visualization dictionary
+        can be created using the help of utility functions provided.
+    camera_type: str
+        The camera type to be used during visualization.
+        TODO: Allow more options and to be specified by user (potentially
+        as a @property)
+    objects: dict
+        Dictionary of Vispy.scene.visual instances of the simulation objects to
+        be visualized. Key is a string of the name of the object as given in the
+        visualization dict, and the value is a Vispy.scene.visual instance
+    meshdata: dict
+        Dictionary of the meshdata for each object to be visualized. Key is the
+        string of the name of the object as given in the visualization dict and
+        the value is a list of meshdata
+    app_timers: dict
+        A dictionary of the Vispy app timers. Key is a string of the name of
+        the timer and the value is a Vispy.app.Timer instance
+        TODO: Create more timers and allow for timers to be created by users and
+        added
+    app: Vispy.app.application.Application()
+        The Vispy app instance.
+        TODO: Think about whether it would be better
+        for user to create instance of app and then provide it to the class as
+        potentially recommended by the Vispy maintainers
+    canvas: Vispy.scene.SceneCanvas
+        The Vispy scene instance.
+        TODO: Think about whether it would be better
+        for user to create instance of the scene and then provide it to the class as
+        potentially recommended by the Vispy maintainers.
+        TODO: Also scene instance has parameters and can be customised eg. background
+        color and window size. Think about the best way to implement this.
+    view: Vispy.view
+        The view(s) in the canvas.
+        TODO: Potential future features include addition views in addition to the
+        central widget such as side graph views etc.
+    time: list
+        List of the the simulation times. Used to indicate the simulation time
+        while the simulation is being visualized.
+    time_text: Vispy.scene.text
+        Vispy instance to display the time in the visualization window.
+        TODO: Perhaps allow for ways for parameters of the text to be specified
+        eg. Color, size etc.
+        TODO: Enable timer to be turned on or off
+    max_updates: int
+        The maximum number of updates/number of times the app timers can
+        run, to prevent IndexErrors.
+        TODO: See comments further down about ways to improve the usage of this
 
     """
 
@@ -85,12 +85,12 @@ class Visualizer:
         is added to the self.meshdata dictionary.
 
         Pre-computing meshdata before visualization begins saves a lot of time
-        as opposed to computing during visualization. 
+        as opposed to computing during visualization.
 
         Raises:
             NotImplementedError: Error if object type is one which has not
             yet been implemented
-            ValueError: Error if object type is not one of the possible 
+            ValueError: Error if object type is not one of the possible
             types
         """
 
@@ -199,28 +199,60 @@ class Visualizer:
             parent=self.canvas.central_widget,
         )
 
-    def add_axis(self, axis_direction):
+    def add_axis(self, axis_direction, color="white", font_size=10, axis_width=2):
 
-        if axis_direction == "x" :
-            axis = scene.Axis(pos=[[0,0], [1,0]], tick_direction=(0,-1), font_size=16, axis_color='b', tick_color='b', text_color='b',
-                 parent=self.view.scene)
+        if axis_direction == "x":
+            axis = scene.Axis(
+                pos=[[0, 0], [1, 0]],
+                tick_direction=(0, -1),
+                font_size=font_size,
+                axis_width=axis_width,
+                axis_color=color,
+                tick_color=color,
+                text_color=color,
+                parent=self.view.scene,
+            )
 
         elif axis_direction == "y":
-            axis = scene.Axis(pos=[[0,0], [0,1]], tick_direction=(-1,0), font_size=16, axis_color='g', tick_color='g', text_color='g',
-                 parent=self.view.scene)
+            axis = scene.Axis(
+                pos=[[0, 0], [0, 1]],
+                tick_direction=(-1, 0),
+                font_size=font_size,
+                axis_width=axis_width,
+                axis_color=color,
+                tick_color=color,
+                text_color=color,
+                parent=self.view.scene,
+            )
 
         elif axis_direction == "z":
-            pass
+
+            axis = scene.Axis(
+                pos=[[0, 0], [0, 1]],
+                tick_direction=(-1, 0),
+                font_size=font_size,
+                axis_width=axis_width,
+                axis_color=color,
+                tick_color=color,
+                text_color=color,
+                parent=self.view.scene,
+            )
+
+            rot_mat = np.array([[1,0,0,0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
+
+            axis.transform = scene.transforms.MatrixTransform(matrix=rot_mat)
+
 
         else:
-            raise ValueError(f"{axis_direction} is not a valid option. Please choose either 'x', 'y' or 'z'.")
-
+            raise ValueError(
+                f"{axis_direction} is not a valid option. Please choose either 'x', 'y' or 'z'."
+            )
 
     def _initialize_camera(self):
         """Intializes camera type for the scene
 
         TODO: Add more camera types
-        TODO: Add ability for user to customize the different parameters for the 
+        TODO: Add ability for user to customize the different parameters for the
         camera
 
         Raises:
@@ -321,9 +353,7 @@ class Visualizer:
         self.time_text.text = f"Time: {self.time[self.iterator_index]:.4f}"
 
     def _save_video_timer(self, event):
-        """App timer to write simulation frames to video file
-
-        """
+        """App timer to write simulation frames to video file"""
 
         frame = _screenshot()
         self.video_writer.append_data(frame)
@@ -331,13 +361,13 @@ class Visualizer:
     def run(self, video_fname=None):
         """Runs the visualization
 
-        Runs the different initialisation/set up methods before showing the 
+        Runs the different initialisation/set up methods before showing the
         Vispy canvas and starting the Vispy app and its' timers
 
         Args:
             video_fname (str, optional): The file path to save the video
             output of the simulation. If None, then no video is saved.
-            Defaults to None. 
+            Defaults to None.
         """
 
         # self._calculate_meshdata()
