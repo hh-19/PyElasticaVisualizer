@@ -75,6 +75,7 @@ class Visualizer:
         self.app_timers = {}
 
         self._calculate_meshdata()
+        self._calculate_domain()
         self._initalize_scene()
 
     def _calculate_meshdata(self):
@@ -110,7 +111,7 @@ class Visualizer:
                 color = object_parameters["color"]
 
                 for i in tqdm(
-                    range(len(object_parameters["position"]) - 1000),
+                    range(len(object_parameters["position"])),
                     desc=f"Object {num+1}/{number_of_objects}",
                 ):
 
@@ -200,11 +201,38 @@ class Visualizer:
             parent=self.canvas.central_widget,
         )
 
-    def add_axis(self, axis_direction, color="white", font_size=10, axis_width=2):
+    def add_axis(self, axis_direction, domain=None, color="white", font_size=10, axis_width=2):
+
+        if domain is None:
+            if axis_direction == "x":
+                min_val, max_val = self.min_domain[0], self.max_domain[0]
+            
+            elif axis_direction == "y":
+                min_val, max_val = self.min_domain[1], self.max_domain[1]
+            
+            elif axis_direction == "z":
+                min_val, max_val = self.min_domain[2], self.max_domain[2]
+        
+            if np.abs(min_val) < 1:
+                min_val = np.around(min_val, 1)
+            
+            if np.abs(max_val) < 1:
+                max_val = np.around(max_val, 1)
+
+            domain = [min_val, max_val]
+            print(f"{domain=}")
+
+        else:
+            min_val, max_val = domain[0], domain[1]
+
+        if min_val == max_val:
+            return
 
         if axis_direction == "x":
+
             axis = scene.Axis(
-                pos=[[0, 0], [1, 0]],
+                pos=[[min_val, 0], [max_val, 0]],
+                domain=domain,
                 tick_direction=(0, -1),
                 font_size=font_size,
                 axis_width=axis_width,
@@ -215,8 +243,10 @@ class Visualizer:
             )
 
         elif axis_direction == "y":
+            
             axis = scene.Axis(
-                pos=[[0, 0], [0, 1]],
+                pos=[[0, min_val], [0, max_val]],
+                domain=domain,
                 tick_direction=(-1, 0),
                 font_size=font_size,
                 axis_width=axis_width,
@@ -229,7 +259,8 @@ class Visualizer:
         elif axis_direction == "z":
 
             axis = scene.Axis(
-                pos=[[0, 0], [0, 1]],
+                pos=[[0, min_val], [0, max_val]],
+                domain=domain,
                 tick_direction=(-1, 0),
                 font_size=font_size,
                 axis_width=axis_width,
@@ -242,11 +273,6 @@ class Visualizer:
             rot_mat = np.array([[1,0,0,0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
             axis.transform = scene.transforms.MatrixTransform(matrix=rot_mat)
 
-
-        else:
-            raise ValueError(
-                f"{axis_direction} is not a valid option. Please choose either 'x', 'y' or 'z'."
-            )
 
     def _initialize_camera(self):
         """Intializes camera type for the scene
@@ -324,7 +350,6 @@ class Visualizer:
         # Stop the timer update to prevent list indexing beyond
         # the size of the list
 
-        #
         if self.iterator_index >= self.max_updates:
             # Once the update timer has reached its stopping point all other
             # timers will be closed as well
@@ -359,16 +384,24 @@ class Visualizer:
         self.video_writer.append_data(frame)
 
     def _calculate_domain(self):
+        
+        num_objects = len(self.visualization_dict["objects"])
+        all_objects_max_domain = np.zeros(shape=(num_objects, 3))
+        all_objects_min_domain = np.zeros(shape=(num_objects, 3))
 
         for num, object in enumerate(self.visualization_dict["objects"]):
 
             object_parameters = self.visualization_dict["objects"][object]
-            # object_position = object_parameters["position"].transpose()[:-1]
             object_position = object_parameters["position"]
-            # object_position_arr = np.array(object_position)
-            print(object_position.shape)
-            break
 
+            object_max_domain = object_position.max(axis=0).max(axis=1)
+            object_min_domain = object_position.min(axis=0).min(axis=1)
+
+            all_objects_max_domain[num] = object_max_domain
+            all_objects_min_domain[num] = object_min_domain
+
+        self.max_domain = all_objects_max_domain.max(axis=0)
+        self.min_domain = all_objects_min_domain.min(axis=0)
 
     def run(self, video_fname=None):
         """Runs the visualization
