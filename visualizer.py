@@ -94,15 +94,13 @@ class Visualizer:
             types
         """
 
-        for object in self.visualization_dict["objects"]:
-
-            self.meshdata[object] = []
-            number_of_objects = len(self.visualization_dict["objects"])
+        number_of_objects = len(self.visualization_dict["objects"])
 
         print("Pre-calculating meshdata...")
 
         for num, object in enumerate(self.visualization_dict["objects"]):
 
+            self.meshdata[object] = []
             object_parameters = self.visualization_dict["objects"][object]
             object_type = object_parameters["type"]
 
@@ -112,7 +110,7 @@ class Visualizer:
                 color = object_parameters["color"]
 
                 for i in tqdm(
-                    range(len(object_parameters["position"])),
+                    range(len(object_parameters["position"]) - 1000),
                     desc=f"Object {num+1}/{number_of_objects}",
                 ):
 
@@ -121,6 +119,9 @@ class Visualizer:
                     # TODO: Transpose position data during generation of visualization_dict
                     #  instead of here
 
+                    # Takes object position data up to -1th element so dimension matches radius dimension
+                    # This is due to how PyElastica functions, where position array has one more element
+                    # than the radius array
                     object_position = object_parameters["position"][i].transpose()[:-1]
                     object_radius = object_parameters["radius"][i]
 
@@ -239,7 +240,6 @@ class Visualizer:
             )
 
             rot_mat = np.array([[1,0,0,0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]])
-
             axis.transform = scene.transforms.MatrixTransform(matrix=rot_mat)
 
 
@@ -357,6 +357,18 @@ class Visualizer:
 
         frame = _screenshot()
         self.video_writer.append_data(frame)
+
+    def _calculate_domain(self):
+
+        for num, object in enumerate(self.visualization_dict["objects"]):
+
+            object_parameters = self.visualization_dict["objects"][object]
+            # object_position = object_parameters["position"].transpose()[:-1]
+            object_position = object_parameters["position"]
+            # object_position_arr = np.array(object_position)
+            print(object_position.shape)
+            break
+
 
     def run(self, video_fname=None):
         """Runs the visualization
