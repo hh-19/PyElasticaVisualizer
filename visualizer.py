@@ -1,4 +1,5 @@
 from ast import Raise
+from unicodedata import decimal
 import numpy as np
 
 from tqdm import tqdm
@@ -213,14 +214,7 @@ class Visualizer:
             elif axis_direction == "z":
                 min_val, max_val = self.min_domain[2], self.max_domain[2]
         
-            if np.abs(min_val) < 1:
-                min_val = np.around(min_val, 1)
-            
-            if np.abs(max_val) < 1:
-                max_val = np.around(max_val, 1)
-
             domain = [min_val, max_val]
-            print(f"{domain=}")
 
         else:
             min_val, max_val = domain[0], domain[1]
@@ -400,8 +394,9 @@ class Visualizer:
             all_objects_max_domain[num] = object_max_domain
             all_objects_min_domain[num] = object_min_domain
 
-        self.max_domain = all_objects_max_domain.max(axis=0)
-        self.min_domain = all_objects_min_domain.min(axis=0)
+        self.max_domain = all_objects_max_domain.max(axis=0).round(decimals=1)
+        self.min_domain = all_objects_min_domain.min(axis=0).round(decimals=1)
+
 
     def run(self, video_fname=None):
         """Runs the visualization
