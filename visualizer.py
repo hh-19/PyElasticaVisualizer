@@ -1,3 +1,4 @@
+from ast import Raise
 import numpy as np
 
 from tqdm import tqdm
@@ -72,6 +73,9 @@ class Visualizer:
         self.objects = {}
         self.meshdata = {}
         self.app_timers = {}
+
+        self._calculate_meshdata()
+        self._initalize_scene()
 
     def _calculate_meshdata(self):
         """Pre-computes meshdata for objects in system
@@ -194,6 +198,23 @@ class Visualizer:
             pos=(80, 30),
             parent=self.canvas.central_widget,
         )
+
+    def add_axis(self, axis_direction):
+
+        if axis_direction == "x" :
+            axis = scene.Axis(pos=[[0,0], [1,0]], tick_direction=(0,-1), font_size=16, axis_color='b', tick_color='b', text_color='b',
+                 parent=self.view.scene)
+
+        elif axis_direction == "y":
+            axis = scene.Axis(pos=[[0,0], [0,1]], tick_direction=(-1,0), font_size=16, axis_color='g', tick_color='g', text_color='g',
+                 parent=self.view.scene)
+
+        elif axis_direction == "z":
+            pass
+
+        else:
+            raise ValueError(f"{axis_direction} is not a valid option. Please choose either 'x', 'y' or 'z'.")
+
 
     def _initialize_camera(self):
         """Intializes camera type for the scene
@@ -319,8 +340,8 @@ class Visualizer:
             Defaults to None. 
         """
 
-        self._calculate_meshdata()
-        self._initalize_scene()
+        # self._calculate_meshdata()
+        # self._initalize_scene()
         self._initialize_camera()
 
         if video_fname is not None:

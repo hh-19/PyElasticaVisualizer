@@ -18,6 +18,8 @@ with open("examples/ContinuumSnakeCase/continuum_snake.dat", "rb") as f:
 visualization_dict = generate_visualization_dict(postprocessing_dict)
 
 Visualizer = Visualizer(visualization_dict)
+Visualizer.add_axis("x")
+Visualizer.add_axis("y")
 
 if SAVE_VISUALIZATION:
 
