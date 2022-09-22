@@ -280,8 +280,8 @@ class Visualizer:
         """
         if self.camera_type == "turntable":
 
-            self.view.camera = scene.TurntableCamera()
-            self.view.camera.set_range()
+            self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
+            self.view.camera.set_range(x=(self.min_domain[0], self.max_domain[0]), z=(self.min_domain[2], self.max_domain[2]))
 
         else:
             raise ValueError(
@@ -382,6 +382,7 @@ class Visualizer:
         num_objects = len(self.visualization_dict["objects"])
         all_objects_max_domain = np.zeros(shape=(num_objects, 3))
         all_objects_min_domain = np.zeros(shape=(num_objects, 3))
+        all_objects_avg_coords = np.zeros(shape=(num_objects, 3))
 
         for num, object in enumerate(self.visualization_dict["objects"]):
 
@@ -390,10 +391,13 @@ class Visualizer:
 
             object_max_domain = object_position.max(axis=0).max(axis=1)
             object_min_domain = object_position.min(axis=0).min(axis=1)
+            object_avg_coords = np.mean(object_position, axis=(0,2))
 
             all_objects_max_domain[num] = object_max_domain
             all_objects_min_domain[num] = object_min_domain
+            all_objects_avg_coords[num] = object_avg_coords
 
+        self.average_position = np.mean(all_objects_avg_coords, axis=0).round(decimals=1)
         self.max_domain = all_objects_max_domain.max(axis=0).round(decimals=1)
         self.min_domain = all_objects_min_domain.min(axis=0).round(decimals=1)
 
