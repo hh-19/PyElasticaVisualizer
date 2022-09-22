@@ -18,7 +18,7 @@ with open("examples/ContinuumSnakeCase/continuum_snake.dat", "rb") as f:
 visualization_dict = generate_visualization_dict(postprocessing_dict)
 
 Visualizer = Visualizer(visualization_dict)
-Visualizer._calculate_domain()
+Visualizer.turntable_camera()
 Visualizer.add_axis("x")
 Visualizer.add_axis("y")
 Visualizer.add_axis("z")
