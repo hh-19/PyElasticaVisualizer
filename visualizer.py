@@ -70,6 +70,7 @@ class Visualizer:
         self.visualization_dict = visualization_dict
         self.canvas_size = canvas_size
         self.camera_type = "turntable"
+        # self.camera_type = None
         self.save_video = False
         self.objects = {}
         self.meshdata = {}
@@ -112,7 +113,7 @@ class Visualizer:
                 color = object_parameters["color"]
 
                 for i in tqdm(
-                    range(len(object_parameters["position"])),
+                    range(len(object_parameters["position"]) - 100),
                     desc=f"Object {num+1}/{number_of_objects}",
                 ):
 
@@ -268,6 +269,55 @@ class Visualizer:
             axis.transform = scene.transforms.MatrixTransform(matrix=rot_mat)
 
 
+    def turntable_camera(self, focal_plane="xz", **kwargs):
+
+        self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
+        self.view.camera.set_range(x=(self.min_domain[0], self.max_domain[0]), y=(self.min_domain[1], self.max_domain[1]), z=(self.min_domain[2], self.max_domain[2]))
+    
+        if kwargs:
+            self.view.camera.set_state(**kwargs)
+
+        elif focal_plane == "xz":
+            self.view.camera.set_state({"elevation": 0, "azimuth": 0})
+        
+        elif focal_plane == "xy":
+            self.view.camera.set_state({"elevation": 90, "azimuth": 0})
+        
+        elif focal_plane == "yz":
+            self.view.camera.set_state({"elevation": 0, "azimuth": 90})
+
+        else:
+            raise ValueError(f"Focal plane = {focal_plane} is not a valid option. Please choose either 'xz', 'xy' or 'yz'")
+
+    def arcball_camera(self, **kwargs):
+
+        self.view.camera = scene.ArcballCamera()
+        self.view.camera.set_range(x=(self.min_domain[0], self.max_domain[0]), y=(self.min_domain[1], self.max_domain[1]), z=(self.min_domain[2], self.max_domain[2]))
+        print(self.view.camera.get_state())
+
+    def fly_camera(self, autoroll=True, **kwargs):
+
+        self.view.camera = scene.FlyCamera()
+        self.view.camera.auto_roll = autoroll
+        self.view.camera.set_range(x=(self.min_domain[0], self.max_domain[0]), z=(self.min_domain[2], self.max_domain[2]))
+
+
+        # TODO Set camera initial rotation and position so objects are framed in view
+        
+        # from vispy.util.quaternion import Quaternion
+
+        # camera_x = (self.max_domain[0] + self.min_domain[0]) / 2
+        # camera_z = (self.max_domain[2] + self.min_domain[2]) / 2
+        # camera_y = -np.abs(2 * max([camera_z, camera_x])) 
+
+        # object_y = (self.max_domain[1] - self.min_domain[1]) / 2
+
+        # self.view.camera.center = [camera_x, camera_y, camera_z]
+        # camera_vector = np.array([0, object_y, 0])
+        # self.view.camera.rotation1 = Quaternion(w=1, x=-1, y=0, z=0)
+
+
+
     def _initialize_camera(self):
         """Intializes camera type for the scene
 
@@ -281,7 +331,8 @@ class Visualizer:
         if self.camera_type == "turntable":
 
             self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
-            self.view.camera.set_range(x=(self.min_domain[0], self.max_domain[0]), z=(self.min_domain[2], self.max_domain[2]))
+            self.view.camera.set_range(x=(self.min_domain[0], self.max_domain[0]), y=(self.min_domain[1], self.max_domain[1]), z=(self.min_domain[2], self.max_domain[2]))
+            print(f"{self.view.camera.get_state()}")
 
         else:
             raise ValueError(
@@ -371,6 +422,10 @@ class Visualizer:
         # time_list = self.visualization_dict["time"]
         self.time_text.text = f"Time: {self.time[self.iterator_index]:.4f}"
 
+        if self.iterator_index % 20 == 0:
+            print(self.view.camera.get_state())
+            
+
     def _save_video_timer(self, event):
         """App timer to write simulation frames to video file"""
 
@@ -416,7 +471,7 @@ class Visualizer:
 
         # self._calculate_meshdata()
         # self._initalize_scene()
-        self._initialize_camera()
+        # self._initialize_camera()
 
         if video_fname is not None:
 
