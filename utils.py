@@ -8,7 +8,7 @@ time tinkering with stuff, while still allowing for user control over how the Vi
 looks if required.
 
 This is definitely not intuitive, it kind of allows for quick Visualization 
-but not sure if this is the best way, and if it isn't then what is.
+but not sure if this is the best way, and if it isn't, then what is.
 
 Example of grouping_parameters_dictionary:
 
@@ -21,7 +21,7 @@ grouping_parameters = {
     }
 }
 """
-
+import numpy as np
 from elastica import CallBackBaseClass
 
 def generate_visualization_dict(postprocessing_dict, grouping_parameters=None):
@@ -77,8 +77,8 @@ def generate_visualization_dict(postprocessing_dict, grouping_parameters=None):
 
             visualization_dict["objects"][object] = {
                 "type": object_type,
-                "position": postprocessing_dict[object]["position"],
-                "radius": postprocessing_dict[object]["radius"],
+                "position": np.array(postprocessing_dict[object]["position"]),
+                "radius": np.array(postprocessing_dict[object]["radius"]),
                 "color": color,
                 "closed": closed
             }

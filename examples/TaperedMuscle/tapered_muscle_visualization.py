@@ -13,7 +13,7 @@ from visualizer import Visualizer
 from utils import generate_visualization_dict
 
 if __name__ == "__main__":
-    data = np.load("data/tapered_muscle/tapered_nine_muscle_rods.npz")
+    data = np.load("examples/TaperedMuscle/tapered_nine_muscle_rods.npz")
     # print(data["straight_rods_position_history"].shape)
     # print(data["straight_rods_radius_history"].shape)
     # print(data["inner_ring_rods_radius_history"].shape)
@@ -152,4 +152,4 @@ if __name__ == "__main__":
     }
     
     Visualizer = Visualizer(tapered_muscle_visualization_dict)
-    Visualizer.run()
+    # Visualizer.run(video_fname="examples/TaperedMuscle/tapered_nine_muscle_rods_visualization.mp4")

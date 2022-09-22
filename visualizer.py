@@ -1,3 +1,5 @@
+from ast import Raise
+from unicodedata import decimal
 import numpy as np
 
 from tqdm import tqdm
@@ -6,60 +8,58 @@ from vispy.gloo.util import _screenshot
 
 
 class Visualizer:
-    """Visualizer class for visualising PyElastica simulations 
+    """Visualizer class for visualising PyElastica simulations
 
-        Attributes
-        ----------
+    Attributes
+    ----------
 
-        visualization_dict: dict
-            Dictionary containing the data and parameters for each object
-            in the simulation to be visualized. Visualization dictionary
-            can be created using the help of utility functions provided.
-        camera_type: str
-            The camera type to be used during visualization.
-            TODO: Allow more options and to be specified by user (potentially
-            as a @property)
-        objects: dict
-            Dictionary of Vispy.scene.visual instances of the simulation objects to
-            be visualized. Key is a string of the name of the object as given in the 
-            visualization dict, and the value is a Vispy.scene.visual instance
-        meshdata: dict
-            Dictionary of the meshdata for each object to be visualized. Key is the 
-            string of the name of the object as given in the visualization dict and
-            the value is a list of meshdata 
-        app_timers: dict
-            A dictionary of the Vispy app timers. Key is a string of the name of 
-            the timer and the value is a Vispy.app.Timer instance
-            TODO: Create more timers and allow for timers to be created by users and 
-            added 
-        app: Vispy.app.application.Application()
-            The Vispy app instance. 
-            TODO: Think about whether it would be better
-            for user to create instance of app and then provide it to the class as
-            potentially recommended by the Vispy maintainers
-        canvas: Vispy.scene.SceneCanvas
-            The Vispy scene instance. 
-            TODO: Think about whether it would be better
-            for user to create instance of the scene and then provide it to the class as
-            potentially recommended by the Vispy maintainers.
-            TODO: Also scene instance has parameters and can be customised eg. background
-            color and window size. Think about the best way to implement this.
-        view: Vispy.view
-            The view(s) in the canvas. 
-            TODO: Potential future features include addition views in addition to the 
-            central widget such as side graph views etc.
-        time: list
-            List of the the simulation times. Used to indicate the simulation time
-            while the simulation is being visualized.
-        time_text: Vispy.scene.text
-            Vispy instance to display the time in the visualization window.
-            TODO: Perhaps allow for ways for parameters of the text to be specified
-            eg. Color, size etc.
-            TODO: Enable timer to be turned on or off
-        max_updates: int
-            The maximum number of updates/number of times the app timers can
-            run, to prevent IndexErrors.
-            TODO: See comments further down about ways to improve the usage of this
+    visualization_dict: dict
+        Dictionary containing the data and parameters for each object
+        in the simulation to be visualized. Visualization dictionary
+        can be created using the help of utility functions provided.
+    camera_type: str
+        The camera type to be used during visualization.
+    objects: dict
+        Dictionary of Vispy.scene.visual instances of the simulation objects to
+        be visualized. Key is a string of the name of the object as given in the
+        visualization dict, and the value is a Vispy.scene.visual instance
+    meshdata: dict
+        Dictionary of the meshdata for each object to be visualized. Key is the
+        string of the name of the object as given in the visualization dict and
+        the value is a list of meshdata
+    app_timers: dict
+        A dictionary of the Vispy app timers. Key is a string of the name of
+        the timer and the value is a Vispy.app.Timer instance
+        TODO: Create more timers and allow for timers to be created by users and
+        added
+    app: Vispy.app.application.Application()
+        The Vispy app instance.
+        TODO: Think about whether it would be better
+        for user to create instance of app and then provide it to the class as
+        potentially recommended by the Vispy maintainers
+    canvas: Vispy.scene.SceneCanvas
+        The Vispy scene instance.
+        TODO: Think about whether it would be better
+        for user to create instance of the scene and then provide it to the class as
+        potentially recommended by the Vispy maintainers.
+        TODO: Also scene instance has parameters and can be customised eg. background
+        color and window size. Think about the best way to implement this.
+    view: Vispy.view
+        The view(s) in the canvas.
+        TODO: Potential future features include addition views in addition to the
+        central widget such as side graph views etc.
+    time: list
+        List of the the simulation times. Used to indicate the simulation time
+        while the simulation is being visualized.
+    time_text: Vispy.scene.text
+        Vispy instance to display the time in the visualization window.
+        TODO: Perhaps allow for ways for parameters of the text to be specified
+        eg. Color, size etc.
+        TODO: Enable timer to be turned on or off
+    max_updates: int
+        The maximum number of updates/number of times the app timers can
+        run, to prevent IndexErrors.
+        TODO: See comments further down about ways to improve the usage of this
 
     """
 
@@ -67,11 +67,15 @@ class Visualizer:
 
         self.visualization_dict = visualization_dict
         self.canvas_size = canvas_size
-        self.camera_type = "turntable"
+        self.camera_type = None
         self.save_video = False
         self.objects = {}
         self.meshdata = {}
         self.app_timers = {}
+
+        self._calculate_meshdata()
+        self._calculate_domain()
+        self._initalize_scene()
 
     def _calculate_meshdata(self):
         """Pre-computes meshdata for objects in system
@@ -81,24 +85,22 @@ class Visualizer:
         is added to the self.meshdata dictionary.
 
         Pre-computing meshdata before visualization begins saves a lot of time
-        as opposed to computing during visualization. 
+        as opposed to computing during visualization.
 
         Raises:
             NotImplementedError: Error if object type is one which has not
             yet been implemented
-            ValueError: Error if object type is not one of the possible 
+            ValueError: Error if object type is not one of the possible
             types
         """
 
-        for object in self.visualization_dict["objects"]:
-
-            self.meshdata[object] = []
-            number_of_objects = len(self.visualization_dict["objects"])
+        number_of_objects = len(self.visualization_dict["objects"])
 
         print("Pre-calculating meshdata...")
 
         for num, object in enumerate(self.visualization_dict["objects"]):
 
+            self.meshdata[object] = []
             object_parameters = self.visualization_dict["objects"][object]
             object_type = object_parameters["type"]
 
@@ -108,7 +110,7 @@ class Visualizer:
                 color = object_parameters["color"]
 
                 for i in tqdm(
-                    range(len(object_parameters["position"])),
+                    range(len(object_parameters["position"]) - 100),
                     desc=f"Object {num+1}/{number_of_objects}",
                 ):
 
@@ -117,6 +119,9 @@ class Visualizer:
                     # TODO: Transpose position data during generation of visualization_dict
                     #  instead of here
 
+                    # Takes object position data up to -1th element so dimension matches radius dimension
+                    # This is due to how PyElastica functions, where position array has one more element
+                    # than the radius array
                     object_position = object_parameters["position"][i].transpose()[:-1]
                     object_radius = object_parameters["radius"][i]
 
@@ -195,25 +200,136 @@ class Visualizer:
             parent=self.canvas.central_widget,
         )
 
-    def _initialize_camera(self):
-        """Intializes camera type for the scene
+    def add_axis(
+        self, axis_direction, domain=None, color="white", font_size=10, axis_width=2
+    ):
 
-        TODO: Add more camera types
-        TODO: Add ability for user to customize the different parameters for the 
-        camera
+        if domain is None:
+            if axis_direction == "x":
+                min_val, max_val = self.min_domain[0], self.max_domain[0]
 
-        Raises:
-            ValueError: Raises error if camera option chosen is not a valid option
-        """
-        if self.camera_type == "turntable":
+            elif axis_direction == "y":
+                min_val, max_val = self.min_domain[1], self.max_domain[1]
 
-            self.view.camera = scene.TurntableCamera()
-            self.view.camera.set_range()
+            elif axis_direction == "z":
+                min_val, max_val = self.min_domain[2], self.max_domain[2]
+
+            domain = [min_val, max_val]
+
+        else:
+            min_val, max_val = domain[0], domain[1]
+
+        if min_val == max_val:
+            return
+
+        if axis_direction == "x":
+
+            axis = scene.Axis(
+                pos=[[min_val, 0], [max_val, 0]],
+                domain=domain,
+                tick_direction=(0, -1),
+                font_size=font_size,
+                axis_width=axis_width,
+                axis_color=color,
+                tick_color=color,
+                text_color=color,
+                parent=self.view.scene,
+            )
+
+        elif axis_direction == "y":
+
+            axis = scene.Axis(
+                pos=[[0, min_val], [0, max_val]],
+                domain=domain,
+                tick_direction=(-1, 0),
+                font_size=font_size,
+                axis_width=axis_width,
+                axis_color=color,
+                tick_color=color,
+                text_color=color,
+                parent=self.view.scene,
+            )
+
+        elif axis_direction == "z":
+
+            axis = scene.Axis(
+                pos=[[0, min_val], [0, max_val]],
+                domain=domain,
+                tick_direction=(-1, 0),
+                font_size=font_size,
+                axis_width=axis_width,
+                axis_color=color,
+                tick_color=color,
+                text_color=color,
+                parent=self.view.scene,
+            )
+
+            rot_mat = np.array(
+                [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]
+            )
+            axis.transform = scene.transforms.MatrixTransform(matrix=rot_mat)
+
+    def turntable_camera(self, focal_plane="xz", **kwargs):
+
+        self.camera_type = "turntable"
+        self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
+        self.view.camera.set_range(
+            x=(self.min_domain[0], self.max_domain[0]),
+            y=(self.min_domain[1], self.max_domain[1]),
+            z=(self.min_domain[2], self.max_domain[2]),
+        )
+
+        if kwargs:
+            self.view.camera.set_state(**kwargs)
+
+        elif focal_plane == "xz":
+            self.view.camera.set_state({"elevation": 0, "azimuth": 0})
+
+        elif focal_plane == "xy":
+            self.view.camera.set_state({"elevation": 90, "azimuth": 0})
+
+        elif focal_plane == "yz":
+            self.view.camera.set_state({"elevation": 0, "azimuth": 90})
 
         else:
             raise ValueError(
-                f"{self.camera_type} is not a valid camera option. Please chose another camera."
+                f"Focal plane = {focal_plane} is not a valid option. Please choose either 'xz', 'xy' or 'yz'"
             )
+
+    def arcball_camera(self, **kwargs):
+
+        self.camera_type = "arcball"
+        self.view.camera = scene.ArcballCamera()
+        self.view.camera.set_range(
+            x=(self.min_domain[0], self.max_domain[0]),
+            y=(self.min_domain[1], self.max_domain[1]),
+            z=(self.min_domain[2], self.max_domain[2]),
+        )
+        print(self.view.camera.get_state())
+
+    def fly_camera(self, autoroll=True, **kwargs):
+
+        self.camera_type = "fly"
+        self.view.camera = scene.FlyCamera()
+        self.view.camera.auto_roll = autoroll
+        self.view.camera.set_range(
+            x=(self.min_domain[0], self.max_domain[0]),
+            z=(self.min_domain[2], self.max_domain[2]),
+        )
+
+        # TODO Set camera initial rotation and position so objects are framed in view
+
+        # from vispy.util.quaternion import Quaternion
+
+        # camera_x = (self.max_domain[0] + self.min_domain[0]) / 2
+        # camera_z = (self.max_domain[2] + self.min_domain[2]) / 2
+        # camera_y = -np.abs(2 * max([camera_z, camera_x]))
+
+        # object_y = (self.max_domain[1] - self.min_domain[1]) / 2
+
+        # self.view.camera.center = [camera_x, camera_y, camera_z]
+        # camera_vector = np.array([0, object_y, 0])
+        # self.view.camera.rotation1 = Quaternion(w=1, x=-1, y=0, z=0)
 
     def _initialize_timers(self, timers=None):
         """Method to intialize timers to be used in app
@@ -302,29 +418,60 @@ class Visualizer:
         # time_list = self.visualization_dict["time"]
         self.time_text.text = f"Time: {self.time[self.iterator_index]:.4f}"
 
-    def _save_video_timer(self, event):
-        """App timer to write simulation frames to video file
+        if self.iterator_index % 20 == 0:
+            print(self.view.camera.get_state())
 
-        """
+    def _save_video_timer(self, event):
+        """App timer to write simulation frames to video file"""
 
         frame = _screenshot()
         self.video_writer.append_data(frame)
 
+    def _calculate_domain(self):
+
+        num_objects = len(self.visualization_dict["objects"])
+        all_objects_max_domain = np.zeros(shape=(num_objects, 3))
+        all_objects_min_domain = np.zeros(shape=(num_objects, 3))
+        all_objects_avg_coords = np.zeros(shape=(num_objects, 3))
+
+        for num, object in enumerate(self.visualization_dict["objects"]):
+
+            object_parameters = self.visualization_dict["objects"][object]
+            object_position = object_parameters["position"]
+
+            object_max_domain = object_position.max(axis=0).max(axis=1)
+            object_min_domain = object_position.min(axis=0).min(axis=1)
+            object_avg_coords = np.mean(object_position, axis=(0, 2))
+
+            all_objects_max_domain[num] = object_max_domain
+            all_objects_min_domain[num] = object_min_domain
+            all_objects_avg_coords[num] = object_avg_coords
+
+        self.average_position = np.mean(all_objects_avg_coords, axis=0).round(
+            decimals=1
+        )
+        self.max_domain = all_objects_max_domain.max(axis=0).round(decimals=1)
+        self.min_domain = all_objects_min_domain.min(axis=0).round(decimals=1)
+
     def run(self, video_fname=None):
         """Runs the visualization
 
-        Runs the different initialisation/set up methods before showing the 
+        Runs the different initialisation/set up methods before showing the
         Vispy canvas and starting the Vispy app and its' timers
 
         Args:
             video_fname (str, optional): The file path to save the video
             output of the simulation. If None, then no video is saved.
-            Defaults to None. 
+            Defaults to None.
         """
 
-        self._calculate_meshdata()
-        self._initalize_scene()
-        self._initialize_camera()
+        # self._calculate_meshdata()
+        # self._initalize_scene()
+        # self._initialize_camera()
+
+        if self.camera_type is None:
+            print("No camera has been initialised. Defaulting to turntable camera...")
+            self.turntable_camera()
 
         if video_fname is not None:
 
