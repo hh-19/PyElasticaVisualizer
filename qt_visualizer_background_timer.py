@@ -133,7 +133,7 @@ class DataSource(QtCore.QObject):
             self.finished.emit()
             return
 
-        time.sleep(1.0)
+        # time.sleep(1.0)
         image_data = self._update_image_data(self._count)
         line_data = self._update_line_data(self._count)
         self._count += 1

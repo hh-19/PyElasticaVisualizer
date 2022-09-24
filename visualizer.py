@@ -411,9 +411,9 @@ class Visualizer:
                 new_meshdata = self.meshdata[object][self.iterator_index]
                 self.objects[object].set_data(meshdata=new_meshdata)
 
-        if self.iterator_index % 10 == 0:
+        # if self.iterator_index % 10 == 0:
 
-            self.view.camera.set_range()
+        #     self.view.camera.set_range()
 
         # time_list = self.visualization_dict["time"]
         self.time_text.text = f"Time: {self.time[self.iterator_index]:.4f}"

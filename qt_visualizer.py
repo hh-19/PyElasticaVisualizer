@@ -69,10 +69,10 @@ class CanvasWrapper:
                     color=color,
                 )._meshdata
 
-                self.objects[f"{object}_{num}"] = visuals.Tube(points=[[0, 0, 0], [1, 1, 1]], color=color)
+                self.objects[f"{object}_{num}"] = visuals.Tube(points=[[0, 0, 0], [1, 1, 1]], color=color, parent=self.view.scene, name=f"{object}")
                 self.objects[f"{object}_{num}"].set_data(meshdata=initial_tube_meshdata)
                 
-                self.view.add(self.objects[f"{object}_{num}"])
+                # self.view.add(self.objects[f"{object}_{num}"])
 
             elif object_type == "sphere":
 
@@ -95,9 +95,9 @@ class CanvasWrapper:
 
         self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
         self.view.camera.set_range(
-            x=(-1, 1),
+            x=(-0.1, 0.1),
             y=(0, 0),
-            z=(0, 10),
+            z=(0, 1),
         )
 
         # image_data = _generate_random_image_data(IMAGE_SHAPE)
@@ -340,8 +340,8 @@ if __name__ == "__main__":
     app.create()
 
     canvas_wrapper = CanvasWrapper(visualization_dict)
-    canvas_wrapper.add_axis("z", domain=[0, 10])
-    canvas_wrapper.add_axis("x", domain=[-2, 2])
+    canvas_wrapper.add_axis("z", domain=[0, 1])
+    canvas_wrapper.add_axis("x", domain=[-0.2, 0.2])
     # canvas_wrapper.add_time()
     win = MyMainWindow(canvas_wrapper)
     data_thread = QtCore.QThread(parent=win)
