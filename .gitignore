@@ -5,7 +5,7 @@ __pycache__
 env/
 venv/
 
-testing/
+experimental_*
 FUTURE.md
 
 *.mp4
