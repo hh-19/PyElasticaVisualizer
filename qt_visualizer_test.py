@@ -2,7 +2,7 @@ import pickle
 import time
 
 import numpy as np
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtCore
 
 from vispy import app, scene
 from vispy.scene import SceneCanvas, visuals, Text
@@ -12,51 +12,14 @@ from utils import generate_visualization_dict
 
 IMAGE_SHAPE = (600, 800)  # (height, width)
 CANVAS_SIZE = (800, 600)  # (width, height)
+NUM_LINE_POINTS = 200
+
 TUBE_COLOR_CHOICES = ["green", "red", "blue"]
 
 
-class CustomSlider(QtWidgets.QSlider):
-    def mousePressEvent(self, event):
-        super(CustomSlider, self).mousePressEvent(event)
-        if event.button() == QtCore.Qt.LeftButton:
-            val = self.pixelPosToRangeValue(event.pos())
-            self.setValue(val)
-
-    def pixelPosToRangeValue(self, pos):
-        opt = QtWidgets.QStyleOptionSlider()
-        self.initStyleOption(opt)
-        gr = self.style().subControlRect(
-            QtWidgets.QStyle.CC_Slider, opt, QtWidgets.QStyle.SC_SliderGroove, self
-        )
-        sr = self.style().subControlRect(
-            QtWidgets.QStyle.CC_Slider, opt, QtWidgets.QStyle.SC_SliderHandle, self
-        )
-
-        if self.orientation() == QtCore.Qt.Horizontal:
-            sliderLength = sr.width()
-            sliderMin = gr.x()
-            sliderMax = gr.right() - sliderLength + 1
-        else:
-            sliderLength = sr.height()
-            sliderMin = gr.y()
-            sliderMax = gr.bottom() - sliderLength + 1
-        pr = pos - sr.center() + sr.topLeft()
-        p = pr.x() if self.orientation() == QtCore.Qt.Horizontal else pr.y()
-        return QtWidgets.QStyle.sliderValueFromPosition(
-            self.minimum(),
-            self.maximum(),
-            p - sliderMin,
-            sliderMax - sliderMin,
-            opt.upsideDown,
-        )
-
-
-class PlayPauseControls(QtWidgets.QWidget):
+class Controls(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        btnSize = QtCore.QSize(16, 16)
-
         layout = QtWidgets.QVBoxLayout()
         self.tube_color_label = QtWidgets.QLabel("Object Colours:")
         layout.addWidget(self.tube_color_label)
@@ -65,46 +28,7 @@ class PlayPauseControls(QtWidgets.QWidget):
         layout.addWidget(self.tube_color_chooser)
 
         layout.addStretch(1)
-        # self.setLayout(layout)
-
-        self.playButton = QtWidgets.QPushButton()
-        self.playButton.setEnabled(True)
-        self.playButton.setFixedHeight(24)
-        self.playButton.setIconSize(btnSize)
-        self.playButton.setIcon(
-            self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay)
-        )
-
-        self.positionSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.positionSlider = CustomSlider(QtCore.Qt.Horizontal)
-        self.positionSlider.setRange(0, 0)
-        self.slider_max = -1
-        # self.positionSlider.sliderMoved.connect(self.setPosition)
-
-        # self.statusBar = QtWidgets.QStatusBar()
-        # self.statusBar.setFont(QtGui.QFont("Noto Sans", 7))
-        # self.statusBar.setFixedHeight(14)
-
-        self.progressBar = QtWidgets.QProgressBar()
-        self.progressBar.setRange(0, 0)
-        self.progressBar.setFormat("Calculating Meshdata... %p%")
-
-        controlLayout = QtWidgets.QHBoxLayout()
-        controlLayout = QtWidgets.QGridLayout()
-        controlLayout.setContentsMargins(0, 0, 0, 0)
-        controlLayout.addWidget(self.playButton, 0, 0)
-        controlLayout.addWidget(self.positionSlider, 0, 1)
-        controlLayout.addWidget(self.progressBar, 1, 0, -1, -1)
-        self.setLayout(controlLayout)
-
-    # If playing then dont do anything, or maybe not???
-    def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Right:
-            self.positionSlider.setValue(self.slider.value() + 1)
-        elif event.key() == QtCore.Qt.Key_Left:
-            self.positionSlider.setValue(self.slider.value() - 1)
-        else:
-            QtWidgets.QWidget.keyPressEvent(self, event)
+        self.setLayout(layout)
 
 
 class CanvasWrapper:
@@ -113,20 +37,18 @@ class CanvasWrapper:
         self.canvas = SceneCanvas(keys="interactive", size=CANVAS_SIZE, bgcolor="black")
         self.view = self.canvas.central_widget.add_view()
         self.objects = {}
-        self.meshdata_cache = []
-        self.data_length = len(visualization_dict["time"])
-
+        
         for num, object in enumerate(visualization_dict["objects"]):
-
-            print("Launching...")
+            
+            print("Here we go!!!")
             object_parameters = visualization_dict["objects"][object]
             object_type = object_parameters["type"]
 
             if object_type == "rod":
 
                 is_closed = object_parameters["closed"]
-                color = object_parameters["color"]
-                # color = TUBE_COLOR_CHOICES[0]
+                # color = object_parameters["color"]
+                color = TUBE_COLOR_CHOICES[0]
 
                 # Object position must be transposed from the way that PyElastica
                 # saves it during callback.
@@ -147,14 +69,9 @@ class CanvasWrapper:
                     color=color,
                 )._meshdata
 
-                self.objects[f"{object}_{num}"] = visuals.Tube(
-                    points=[[0, 0, 0], [1, 1, 1]],
-                    color=color,
-                    parent=self.view.scene,
-                    name=f"{object}",
-                )
+                self.objects[f"{object}_{num}"] = visuals.Tube(points=[[0, 0, 0], [1, 1, 1]], color=color, parent=self.view.scene, name=f"{object}")
                 self.objects[f"{object}_{num}"].set_data(meshdata=initial_tube_meshdata)
-
+                
                 # self.view.add(self.objects[f"{object}_{num}"])
 
             elif object_type == "sphere":
@@ -165,10 +82,10 @@ class CanvasWrapper:
             else:
 
                 raise ValueError("Not valid object type")
-
+        
         time_data = visualization_dict["time"]
         self.time_text = scene.Text(
-            f"Time: {time_data[0]:.4f}",
+            f"Time: {time_data[234]:.4f}",
             bold=True,
             font_size=14,
             color="w",
@@ -183,23 +100,39 @@ class CanvasWrapper:
             z=(0, 1),
         )
 
+        # image_data = _generate_random_image_data(IMAGE_SHAPE)
+        # self.image = visuals.Image(
+        #     image_data,
+        #     texture_format="auto",
+        #     cmap=COLORMAP_CHOICES[0],
+        #     parent=self.view_top.scene,
+        # )
+        # self.view_top.camera = "panzoom"
+        # self.view_top.camera.set_range(x=(0, IMAGE_SHAPE[1]), y=(0, IMAGE_SHAPE[0]), margin=0)
+
+        # self.view_bot = self.grid.add_view(1, 0, bgcolor='#c0c0c0')
+        # line_data = _generate_random_line_positions(NUM_LINE_POINTS)
+        # self.line = visuals.Line(line_data, parent=self.view_bot.scene, color=LINE_COLOR_CHOICES[0])
+        # self.view_bot.camera = "panzoom"
+        # self.view_bot.camera.set_range(x=(0, NUM_LINE_POINTS), y=(0, 1))
+
     def set_tube_color(self, color):
         print(f"Changing tube color")
         for object in self.objects:
-            self.objects[object].set_data(color=color)
+            self.objects[object].set_data(color=color)       
 
-    def update_from_slider(self, index):
-        
-        for object in self.meshdata_cache[index]["objects"]:
-            self.objects[object].set_data(
-                meshdata=self.meshdata_cache[index]["objects"][object]
-            )
+    # def set_image_colormap(self, cmap_name: str):
+    #     print(f"Changing image colormap to {cmap_name}")
+    #     self.image.cmap = cmap_name
 
-        self.time_text.text = f"Time: {self.meshdata_cache[index]['time']:.4f}"
+    # def set_line_color(self, color):
+    #     print(f"Changing line color to {color}")
+    #     self.line.set_data(color=color)
 
-    def update_cache(self, new_meshdata_dict):
-
-        self.meshdata_cache.append(new_meshdata_dict)
+    def update_data(self, new_meshdata_dict):
+        print("Updating data...")
+        for object in new_meshdata_dict:
+            self.objects[object].set_data(meshdata=new_meshdata_dict[object])
 
     def add_time(self):
 
@@ -281,9 +214,25 @@ class CanvasWrapper:
                 [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]
             )
             axis.transform = scene.transforms.MatrixTransform(matrix=rot_mat)
+    # def update_data(self, new_data_dict):
+    #     print("Updating data...")
+    #     self.image.set_data(new_data_dict["image"])
+    #     self.line.set_data(new_data_dict["line"])
 
 
-    # add in full axis function
+# def _generate_random_image_data(shape, dtype=np.float32):
+#     rng = np.random.default_rng()
+#     data = rng.random(shape, dtype=dtype)
+#     return data
+
+
+# def _generate_random_line_positions(num_points, dtype=np.float32):
+#     rng = np.random.default_rng()
+#     pos = np.empty((num_points, 2), dtype=np.float32)
+#     pos[:, 0] = np.arange(num_points)
+#     pos[:, 1] = rng.random((num_points,), dtype=dtype)
+#     return pos
+
 
 class MyMainWindow(QtWidgets.QMainWindow):
     closing = QtCore.pyqtSignal()
@@ -292,68 +241,20 @@ class MyMainWindow(QtWidgets.QMainWindow):
         super().__init__(*args, **kwargs)
 
         central_widget = QtWidgets.QWidget()
-        main_layout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QHBoxLayout()
 
+        self._controls = Controls()
+        main_layout.addWidget(self._controls)
         self._canvas_wrapper = canvas_wrapper
         main_layout.addWidget(self._canvas_wrapper.canvas.native)
-        self._play_pause_controls = PlayPauseControls()
-        main_layout.addWidget(self._play_pause_controls)
 
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
-        self.is_playing = False
-        self.play_timer = QtCore.QTimer()
-
         self._connect_controls()
-        self.setWindowTitle("PyElastica Interactive Visualization")
 
     def _connect_controls(self):
-        self._play_pause_controls.positionSlider.valueChanged.connect(
-            self._canvas_wrapper.update_from_slider
-        )
-        self._play_pause_controls.playButton.clicked.connect(self.playButtonPressEvent)
-        self.play_timer.timeout.connect(self.increment_slider)
-
-    def update_meshdata_progress(self, _):
-
-        self._play_pause_controls.slider_max += 1
-        self._play_pause_controls.positionSlider.setMaximum(
-            self._play_pause_controls.slider_max
-        )
-        self._play_pause_controls.progressBar.setValue(
-            self._play_pause_controls.slider_max
-        )
-
-    def increment_slider(self):
-
-        current_val = self._play_pause_controls.positionSlider.value()
-
-        if current_val < self._play_pause_controls.slider_max:
-
-            self._play_pause_controls.positionSlider.setValue(current_val + 1)
-
-            if current_val + 1 >= self._play_pause_controls.slider_max:
-                self.playButtonPressEvent()
-
-    def set_pbar_length(self, value):
-        self._play_pause_controls.progressBar.setMaximum(value - 1)
-
-    def playButtonPressEvent(self):
-
-        if not self.is_playing:
-            self._play_pause_controls.playButton.setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.SP_MediaPause)
-            )
-            self.play_timer.start()
-            self.is_playing = True
-
-        elif self.is_playing:
-            self._play_pause_controls.playButton.setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay)
-            )
-            self.play_timer.stop()
-            self.is_playing = False
+        self._controls.tube_color_chooser.currentTextChanged.connect(self._canvas_wrapper.set_tube_color)
 
     def closeEvent(self, event):
         print("Closing main window!")
@@ -363,31 +264,31 @@ class MyMainWindow(QtWidgets.QMainWindow):
 
 class DataSource(QtCore.QObject):
     """Object representing a complex data producer."""
-
     new_data = QtCore.pyqtSignal(dict)
     finished = QtCore.pyqtSignal()
 
     def __init__(self, visualization_dict, parent=None):
         super().__init__(parent)
         self._should_end = False
-        self.visualization_dict = visualization_dict
-        self._num_iters = len(self.visualization_dict["time"])
+        self._num_iters = len(visualization_dict["time"])
+        self.visualization_dict = visualization_dict    
 
     def run_data_creation(self):
         print("Run data creation is starting")
-
+        print("having a little nap")
+        time.sleep(5)
         for i in range(self._num_iters):
             if self._should_end:
                 print("Data source saw that it was told to stop")
                 break
-
-            data_dict = {"objects": {}}
+            
+            data_dict = {}
 
             for num, object in enumerate(self.visualization_dict["objects"]):
-
+                
                 object_parameters = self.visualization_dict["objects"][object]
                 object_type = object_parameters["type"]
-
+                
                 if object_type == "rod":
 
                     is_closed = object_parameters["closed"]
@@ -402,13 +303,25 @@ class DataSource(QtCore.QObject):
                         closed=is_closed,
                     )._meshdata
 
-                    data_dict["objects"][f"{object}_{num}"] = tube_meshdata
-
-            data_dict["time"] = self.visualization_dict["time"][i]
+                    data_dict[f"{object}_{num}"] = tube_meshdata    
+            
+            # time.sleep(1.0)
             self.new_data.emit(data_dict)
-
+        
         print("Data source finishing")
         self.finished.emit()
+
+    # def _update_image_data(self, count):
+    #     img_count = count % IMAGE_SHAPE[1]
+    #     self._image_data[:, img_count] = img_count / IMAGE_SHAPE[1]
+    #     rdata_shape = (IMAGE_SHAPE[0], IMAGE_SHAPE[1] - img_count - 1)
+    #     self._image_data[:, img_count + 1:] = _generate_random_image_data(rdata_shape)
+    #     return self._image_data.copy()
+
+    # def _update_line_data(self, count):
+    #     self._line_data[:, 1] = np.roll(self._line_data[:, 1], -1)
+    #     self._line_data[-1, 1] = abs(sin((count / self._num_iters) * 16 * pi))
+    #     return self._line_data
 
     def stop_data(self):
         print("Data source is quitting...")
@@ -422,6 +335,7 @@ if __name__ == "__main__":
 
     visualization_dict = generate_visualization_dict(postprocessing_dict)
 
+
     app = use_app("pyqt5")
     app.create()
 
@@ -430,17 +344,12 @@ if __name__ == "__main__":
     canvas_wrapper.add_axis("x", domain=[-0.2, 0.2])
     # canvas_wrapper.add_time()
     win = MyMainWindow(canvas_wrapper)
-    win.set_pbar_length(canvas_wrapper.data_length)
-
     data_thread = QtCore.QThread(parent=win)
     data_source = DataSource(visualization_dict)
     data_source.moveToThread(data_thread)
 
     # update the visualization when there is new data
-    ##### data_source.new_data.connect(canvas_wrapper.update_data)
-
-    data_source.new_data.connect(canvas_wrapper.update_cache)
-    data_source.new_data.connect(win.update_meshdata_progress)
+    data_source.new_data.connect(canvas_wrapper.update_data)
     # start data generation when the thread is started
     data_thread.started.connect(data_source.run_data_creation)
     # if the data source finishes before the window is closed, kill the thread
