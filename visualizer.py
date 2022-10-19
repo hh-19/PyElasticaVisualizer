@@ -376,7 +376,7 @@ class Visualizer:
             )
 
     def _update_objects_timer(self, event):
-        """The app timer to update the objects between frames
+        """The app timer to update the objects between frames, and is the main timer for the app
 
         Args:
             event : Parameter required for Vispy app timers
