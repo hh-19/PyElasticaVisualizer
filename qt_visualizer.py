@@ -112,6 +112,7 @@ class CanvasWrapper:
 
         self.canvas = SceneCanvas(keys="interactive", size=CANVAS_SIZE, bgcolor="black")
         self.view = self.canvas.central_widget.add_view()
+        self.visualization_dict = visualization_dict
         self.objects = {}
         self.meshdata_cache = []
         self.data_length = len(visualization_dict["time"])
@@ -155,8 +156,6 @@ class CanvasWrapper:
                 )
                 self.objects[f"{object}_{num}"].set_data(meshdata=initial_tube_meshdata)
 
-                # self.view.add(self.objects[f"{object}_{num}"])
-
             elif object_type == "sphere":
 
                 raise NotImplementedError(
@@ -176,12 +175,13 @@ class CanvasWrapper:
             parent=self.canvas.central_widget,
         )
 
-        self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
-        self.view.camera.set_range(
-            x=(-0.1, 0.1),
-            y=(0, 0),
-            z=(0, 1),
-        )
+        # self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
+        # self.view.camera.set_range(
+        #     x=(-0.1, 0.1),
+        #     y=(0, 0),
+        #     z=(0, 1),
+        # )
+        self._calculate_domain()
 
     def set_tube_color(self, color):
         print(f"Changing tube color")
@@ -200,18 +200,6 @@ class CanvasWrapper:
     def update_cache(self, new_meshdata_dict):
 
         self.meshdata_cache.append(new_meshdata_dict)
-
-    def add_time(self):
-
-        time_data = visualization_dict["time"]
-        self.time_text = Text(
-            f"Time: {time_data[234]:.4f}",
-            bold=True,
-            font_size=14,
-            color="w",
-            pos=(80, 30),
-            parent=self.canvas.central_widget,
-        )
 
     def add_axis(
         self, axis_direction, domain=None, color="white", font_size=10, axis_width=2
@@ -282,10 +270,96 @@ class CanvasWrapper:
             )
             axis.transform = scene.transforms.MatrixTransform(matrix=rot_mat)
 
+    def turntable_camera(self, focal_plane="xz", **kwargs):
 
-    # add in full axis function
+        self.camera_type = "turntable"
+        self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
+        self.view.camera.set_range(
+            x=(self.min_domain[0], self.max_domain[0]),
+            y=(self.min_domain[1], self.max_domain[1]),
+            z=(self.min_domain[2], self.max_domain[2]),
+        )
 
-class MyMainWindow(QtWidgets.QMainWindow):
+        if kwargs:
+            self.view.camera.set_state(**kwargs)
+
+        elif focal_plane == "xz":
+            self.view.camera.set_state({"elevation": 0, "azimuth": 0})
+
+        elif focal_plane == "xy":
+            self.view.camera.set_state({"elevation": 90, "azimuth": 0})
+
+        elif focal_plane == "yz":
+            self.view.camera.set_state({"elevation": 0, "azimuth": 90})
+
+        else:
+            raise ValueError(
+                f"Focal plane = {focal_plane} is not a valid option. Please choose either 'xz', 'xy' or 'yz'"
+            )
+
+    def arcball_camera(self, **kwargs):
+
+        self.camera_type = "arcball"
+        self.view.camera = scene.ArcballCamera()
+        self.view.camera.set_range(
+            x=(self.min_domain[0], self.max_domain[0]),
+            y=(self.min_domain[1], self.max_domain[1]),
+            z=(self.min_domain[2], self.max_domain[2]),
+        )
+        print(self.view.camera.get_state())
+
+    def fly_camera(self, autoroll=True, **kwargs):
+
+        self.camera_type = "fly"
+        self.view.camera = scene.FlyCamera()
+        self.view.camera.auto_roll = autoroll
+        self.view.camera.set_range(
+            x=(self.min_domain[0], self.max_domain[0]),
+            z=(self.min_domain[2], self.max_domain[2]),
+        )
+
+        # TODO Set camera initial rotation and position so objects are framed in view
+
+        # from vispy.util.quaternion import Quaternion
+
+        # camera_x = (self.max_domain[0] + self.min_domain[0]) / 2
+        # camera_z = (self.max_domain[2] + self.min_domain[2]) / 2
+        # camera_y = -np.abs(2 * max([camera_z, camera_x]))
+
+        # object_y = (self.max_domain[1] - self.min_domain[1]) / 2
+
+        # self.view.camera.center = [camera_x, camera_y, camera_z]
+        # camera_vector = np.array([0, object_y, 0])
+        # self.view.camera.rotation1 = Quaternion(w=1, x=-1, y=0, z=0)
+
+
+    def _calculate_domain(self):
+
+        num_objects = len(self.visualization_dict["objects"])
+        all_objects_max_domain = np.zeros(shape=(num_objects, 3))
+        all_objects_min_domain = np.zeros(shape=(num_objects, 3))
+        all_objects_avg_coords = np.zeros(shape=(num_objects, 3))
+
+        for num, object in enumerate(self.visualization_dict["objects"]):
+
+            object_parameters = self.visualization_dict["objects"][object]
+            object_position = object_parameters["position"]
+
+            object_max_domain = object_position.max(axis=0).max(axis=1)
+            object_min_domain = object_position.min(axis=0).min(axis=1)
+            object_avg_coords = np.mean(object_position, axis=(0, 2))
+
+            all_objects_max_domain[num] = object_max_domain
+            all_objects_min_domain[num] = object_min_domain
+            all_objects_avg_coords[num] = object_avg_coords
+
+        self.average_position = np.mean(all_objects_avg_coords, axis=0).round(
+            decimals=1
+        )
+        self.max_domain = all_objects_max_domain.max(axis=0).round(decimals=1)
+        self.min_domain = all_objects_min_domain.min(axis=0).round(decimals=1)
+
+class GUIMainWindow(QtWidgets.QMainWindow):
     closing = QtCore.pyqtSignal()
 
     def __init__(self, canvas_wrapper: CanvasWrapper, *args, **kwargs):
@@ -426,10 +500,11 @@ if __name__ == "__main__":
     app.create()
 
     canvas_wrapper = CanvasWrapper(visualization_dict)
-    canvas_wrapper.add_axis("z", domain=[0, 1])
-    canvas_wrapper.add_axis("x", domain=[-0.2, 0.2])
+    canvas_wrapper.add_axis("z")
+    canvas_wrapper.add_axis("x")
+    canvas_wrapper.turntable_camera()
     # canvas_wrapper.add_time()
-    win = MyMainWindow(canvas_wrapper)
+    win = GUIMainWindow(canvas_wrapper)
     win.set_pbar_length(canvas_wrapper.data_length)
 
     data_thread = QtCore.QThread(parent=win)
