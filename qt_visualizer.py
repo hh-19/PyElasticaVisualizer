@@ -500,7 +500,7 @@ class GUIMainWindow(QtWidgets.QMainWindow):
             self._play_pause_controls.position_slider.setValue(current_val + 1)
 
             if current_val + 1 >= self._play_pause_controls.slider_max:
-                self.play_buttonPressEvent()
+                self.playButtonPressEvent()
 
     def set_pbar_length(self, value):
         """Sets the length of the progress bar"""
@@ -608,6 +608,7 @@ class VisualizerGUI:
             self.win = win
 
         self.canvas = canvas
+        self.visualization_dict = visualization_dict
         self._connect_data_source()
 
     def run(self):
@@ -623,7 +624,7 @@ class VisualizerGUI:
 
         # Create meshdata source and move it to new thread
         self.data_thread = QtCore.QThread(parent=self.win)
-        self.data_source = MeshdataSource(visualization_dict)
+        self.data_source = MeshdataSource(self.visualization_dict)
         self.data_source.moveToThread(self.data_thread)
 
         # update the visualization when there is new data
@@ -655,37 +656,3 @@ if __name__ == "__main__":
 
     Visualizer = VisualizerGUI(visualization_dict, canvas)
     Visualizer.run()
-    # app = use_app("pyqt5")
-    # app.create()
-
-    # canvas_wrapper = CanvasWrapper(visualization_dict)
-    # win = GUIMainWindow(canvas_wrapper)
-    # win.set_pbar_length(canvas_wrapper.data_length)
-
-    # canvas_wrapper.add_axis("z")
-    # canvas_wrapper.add_axis("x")
-    # canvas_wrapper.turntable_camera()
-
-    # # Create meshdata source and move it to new thread
-    # data_thread = QtCore.QThread(parent=win)
-    # data_source = MeshdataSource(visualization_dict)
-    # data_source.moveToThread(data_thread)
-
-    # # update the visualization when there is new data
-    # data_source.new_data.connect(canvas_wrapper._update_cache)
-    # data_source.new_data.connect(win._update_meshdata_progress)
-    # # start data generation when the thread is started
-    # data_thread.started.connect(data_source.run_data_creation)
-    # # if the data source finishes before the window is closed, kill the thread
-    # data_source.finished.connect(data_thread.quit, QtCore.Qt.DirectConnection)
-    # # if the window is closed, tell the data source to stop
-    # win.closing.connect(data_source.stop_data, QtCore.Qt.DirectConnection)
-    # # when the thread has ended, delete the data source from memory
-    # data_thread.finished.connect(data_source.deleteLater)
-
-    # win.show()
-    # data_thread.start()
-    # app.run()
-
-    # print("Waiting for data source to close gracefully...")
-    # data_thread.wait(5000)
