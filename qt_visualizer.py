@@ -12,10 +12,11 @@ from utils import generate_visualization_dict
 
 IMAGE_SHAPE = (600, 800)  # (height, width)
 CANVAS_SIZE = (800, 600)  # (width, height)
-TUBE_COLOR_CHOICES = ["green", "red", "blue"]
 
 
 class CustomSlider(QtWidgets.QSlider):
+    """Custom slider class based off QSlider to change slider position on mouse click"""
+
     def mousePressEvent(self, event):
         super(CustomSlider, self).mousePressEvent(event)
         if event.button() == QtCore.Qt.LeftButton:
@@ -52,62 +53,58 @@ class CustomSlider(QtWidgets.QSlider):
 
 
 class PlayPauseControls(QtWidgets.QWidget):
+    """Group of QT widgets that control the playback of the visualizer
+
+    Groups together the play/pause button widget, slider widget and the progress bar widget
+    """
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
         btnSize = QtCore.QSize(16, 16)
 
-        layout = QtWidgets.QVBoxLayout()
-        self.tube_color_label = QtWidgets.QLabel("Object Colours:")
-        layout.addWidget(self.tube_color_label)
-        self.tube_color_chooser = QtWidgets.QComboBox()
-        self.tube_color_chooser.addItems(TUBE_COLOR_CHOICES)
-        layout.addWidget(self.tube_color_chooser)
-
-        layout.addStretch(1)
-        # self.setLayout(layout)
-
-        self.playButton = QtWidgets.QPushButton()
-        self.playButton.setEnabled(True)
-        self.playButton.setFixedHeight(24)
-        self.playButton.setIconSize(btnSize)
-        self.playButton.setIcon(
+        # Sets up the play button widget
+        self.play_button = QtWidgets.QPushButton()
+        self.play_button.setEnabled(True)
+        self.play_button.setFixedHeight(24)
+        self.play_button.setIconSize(btnSize)
+        self.play_button.setIcon(
             self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay)
         )
 
-        self.positionSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.positionSlider = CustomSlider(QtCore.Qt.Horizontal)
-        self.positionSlider.setRange(0, 0)
+        # Sets up the position slider widget from the custom slider class
+        self.position_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.position_slider = CustomSlider(QtCore.Qt.Horizontal)
+        self.position_slider.setRange(0, 0)
         self.slider_max = -1
-        # self.positionSlider.sliderMoved.connect(self.setPosition)
 
-        # self.statusBar = QtWidgets.QStatusBar()
-        # self.statusBar.setFont(QtGui.QFont("Noto Sans", 7))
-        # self.statusBar.setFixedHeight(14)
+        # Sets up the progress bar widget
+        self.progress_bar = QtWidgets.QProgressBar()
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setFormat("Calculating Meshdata... %p%")
 
-        self.progressBar = QtWidgets.QProgressBar()
-        self.progressBar.setRange(0, 0)
-        self.progressBar.setFormat("Calculating Meshdata... %p%")
-
+        # Widgets are placed within QGrid
         controlLayout = QtWidgets.QHBoxLayout()
         controlLayout = QtWidgets.QGridLayout()
         controlLayout.setContentsMargins(0, 0, 0, 0)
-        controlLayout.addWidget(self.playButton, 0, 0)
-        controlLayout.addWidget(self.positionSlider, 0, 1)
-        controlLayout.addWidget(self.progressBar, 1, 0, -1, -1)
+        controlLayout.addWidget(self.play_button, 0, 0)
+        controlLayout.addWidget(self.position_slider, 0, 1)
+        controlLayout.addWidget(self.progress_bar, 1, 0, -1, -1)
         self.setLayout(controlLayout)
 
-    # If playing then dont do anything, or maybe not???
+    # Increments slider on arrow key press while slider is in focus
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Right:
-            self.positionSlider.setValue(self.slider.value() + 1)
+            self.position_slider.setValue(self.slider.value() + 1)
         elif event.key() == QtCore.Qt.Key_Left:
-            self.positionSlider.setValue(self.slider.value() - 1)
+            self.position_slider.setValue(self.slider.value() - 1)
         else:
             QtWidgets.QWidget.keyPressEvent(self, event)
 
 
 class CanvasWrapper:
+    """Class that contains Vispy canvas and corresponding methods to be embedded in GUI"""
+
     def __init__(self, visualization_dict):
 
         self.canvas = SceneCanvas(keys="interactive", size=CANVAS_SIZE, bgcolor="black")
@@ -117,9 +114,11 @@ class CanvasWrapper:
         self.meshdata_cache = []
         self.data_length = len(visualization_dict["time"])
 
+        # Iterates through objects passed in visualization dictionary
+        # and intializes them into the scene
+
         for num, object in enumerate(visualization_dict["objects"]):
 
-            print("Launching...")
             object_parameters = visualization_dict["objects"][object]
             object_type = object_parameters["type"]
 
@@ -127,12 +126,6 @@ class CanvasWrapper:
 
                 is_closed = object_parameters["closed"]
                 color = object_parameters["color"]
-                # color = TUBE_COLOR_CHOICES[0]
-
-                # Object position must be transposed from the way that PyElastica
-                # saves it during callback.
-                # TODO: Transpose position data during generation of visualization_dict
-                #  instead of here
 
                 # Takes object position data up to -1th element so dimension matches radius dimension
                 # This is due to how PyElastica functions, where position array has one more element
@@ -165,6 +158,7 @@ class CanvasWrapper:
 
                 raise ValueError("Not valid object type")
 
+        # Add text to the scene displaying the simulation time
         time_data = visualization_dict["time"]
         self.time_text = scene.Text(
             f"Time: {time_data[0]:.4f}",
@@ -175,12 +169,8 @@ class CanvasWrapper:
             parent=self.canvas.central_widget,
         )
 
-        # self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
-        # self.view.camera.set_range(
-        #     x=(-0.1, 0.1),
-        #     y=(0, 0),
-        #     z=(0, 1),
-        # )
+        # Calculates the spatial domain traversed by the objects during the simulation
+        # Used for automatic scaling of axes and camera framing
         self._calculate_domain()
 
     def set_tube_color(self, color):
@@ -188,8 +178,13 @@ class CanvasWrapper:
         for object in self.objects:
             self.objects[object].set_data(color=color)
 
-    def update_from_slider(self, index):
-        
+    def _update_from_slider(self, index):
+        """Updates scene to visualize the simulation at the time given by the slider value
+
+        Args:
+            index (int): Index of meshdata cache corresponding to the specified time
+        """
+
         for object in self.meshdata_cache[index]["objects"]:
             self.objects[object].set_data(
                 meshdata=self.meshdata_cache[index]["objects"][object]
@@ -197,13 +192,32 @@ class CanvasWrapper:
 
         self.time_text.text = f"Time: {self.meshdata_cache[index]['time']:.4f}"
 
-    def update_cache(self, new_meshdata_dict):
+    def _update_cache(self, new_meshdata_dict):
+        """Adds new meshdata calculated in the background thread to cache to be used for visualization
+
+        Args:
+            new_meshdata_dict (dict): The new meshdata calcualted and emitted by the background thread
+        """
 
         self.meshdata_cache.append(new_meshdata_dict)
 
     def add_axis(
         self, axis_direction, domain=None, color="white", font_size=10, axis_width=2
     ):
+        """Adds an axis to the scene.
+
+        Args:
+            axis_direction (str): Can be either "x", "y" or "z".
+            domain ([float, float], optional): Domain of the axis ie. the starting and ending values of the axis.
+            If None, the domain is automaticaly set to the full range traversed during the simulation.
+            Defaults to None.
+            color (str, optional): Axis line color. Defaults to "white".
+            font_size (int, optional): Axis tick font size. Defaults to 10.
+            axis_width (int, optional): Axis line width size. Defaults to 2.
+        """
+
+        # If domain argument is None, use the minimum and maximum domain values calulcated
+        # by self._calculate_domain()
 
         if domain is None:
             if axis_direction == "x":
@@ -265,12 +279,31 @@ class CanvasWrapper:
                 parent=self.view.scene,
             )
 
-            rot_mat = np.array(
+            # Axis are specifed using 2D coordinates in Vispy, so requires rotation
+            # to display z-axis
+
+            # 4x4 transformation matrix that represents a rotation of y-axis to z-axis
+            transform_mat = np.array(
                 [[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]]
             )
-            axis.transform = scene.transforms.MatrixTransform(matrix=rot_mat)
+            axis.transform = scene.transforms.MatrixTransform(matrix=transform_mat)
 
     def turntable_camera(self, focal_plane="xz", **kwargs):
+        """3D camera class that orbits around a center point while
+        maintaining a view on a center point.
+
+        Notes
+        -----
+        Interaction:
+            * LMB: orbits the view around its center point.
+            * RMB or scroll: change scale_factor (i.e. zoom level)
+            * SHIFT + LMB: translate the center point
+            * SHIFT + RMB: change FOV
+
+        Args:
+            focal_plane (str, optional): The starting plane of focus of the camera. Values are "xy", "xz" and "yz".
+        Defaults to "xz".
+        """
 
         self.camera_type = "turntable"
         self.view.camera = scene.TurntableCamera(elevation=0, azimuth=0)
@@ -279,6 +312,13 @@ class CanvasWrapper:
             y=(self.min_domain[1], self.max_domain[1]),
             z=(self.min_domain[2], self.max_domain[2]),
         )
+
+        # TODO: Change kwargs to state dicitonary so it is clearer what it is
+
+        # kwargs here represents arguments that can be passed to Vispy cameras to control
+        # the inital state of the camera. For example, the camera can be maunally positoned
+        # by the user during visualization and then that camera state saved to be passed
+        # to a subsequent visualizations of the simulation, so camera will not have to be repositioned again
 
         if kwargs:
             self.view.camera.set_state(**kwargs)
@@ -298,6 +338,17 @@ class CanvasWrapper:
             )
 
     def arcball_camera(self, **kwargs):
+        """3D camera class that orbits around a center point while
+        maintaining a view on a center point. Rotation of camera is "arcball" like.
+
+        Notes
+        -----
+        Interaction:
+            * LMB: orbits the view around its center point.
+            * RMB or scroll: change scale_factor (i.e. zoom level)
+            * SHIFT + LMB: translate the center point
+            * SHIFT + RMB: change FOV
+        """
 
         self.camera_type = "arcball"
         self.view.camera = scene.ArcballCamera()
@@ -309,6 +360,29 @@ class CanvasWrapper:
         print(self.view.camera.get_state())
 
     def fly_camera(self, autoroll=True, **kwargs):
+        """The fly camera provides a way to explore 3D data using an
+        interaction style that resembles a flight simulator.
+
+        Args:
+            autoroll (bool, optional): Whether the camera auto rolls to maintain up as the z direction.
+            Defaults to True.
+
+        Notes
+        -----
+
+        Moving:
+            * arrow keys, or WASD to move forward, backward, left and right
+            * F and C keys move up and down
+            * Space bar to brake
+
+        Viewing:
+            * Use the mouse while holding down LMB to control the pitch and yaw.
+            * Alternatively, the pitch and yaw can be changed using the keys
+                IKJL
+            * The camera auto-rotates to make the bottom point down, manual
+                rolling can be performed using Q and E.
+
+        """
 
         self.camera_type = "fly"
         self.view.camera = scene.FlyCamera()
@@ -332,8 +406,8 @@ class CanvasWrapper:
         # camera_vector = np.array([0, object_y, 0])
         # self.view.camera.rotation1 = Quaternion(w=1, x=-1, y=0, z=0)
 
-
     def _calculate_domain(self):
+        """Function to calculate the full domain traveresed by objects during the entire simulation"""
 
         num_objects = len(self.visualization_dict["objects"])
         all_objects_max_domain = np.zeros(shape=(num_objects, 3))
@@ -359,7 +433,15 @@ class CanvasWrapper:
         self.max_domain = all_objects_max_domain.max(axis=0).round(decimals=1)
         self.min_domain = all_objects_min_domain.min(axis=0).round(decimals=1)
 
+
 class GUIMainWindow(QtWidgets.QMainWindow):
+    """Main window class for the QT GUI
+
+    Args:
+        canvas_wrapper (CanvasWrapper): The Vispy canvas to be embedded.
+
+    """
+
     closing = QtCore.pyqtSignal()
 
     def __init__(self, canvas_wrapper: CanvasWrapper, *args, **kwargs):
@@ -376,6 +458,7 @@ class GUIMainWindow(QtWidgets.QMainWindow):
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
+        # Timer signals the canvas to update the scene to the next frame while visualization is playing
         self.is_playing = False
         self.play_timer = QtCore.QTimer()
 
@@ -383,60 +466,71 @@ class GUIMainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("PyElastica Interactive Visualization")
 
     def _connect_controls(self):
-        self._play_pause_controls.positionSlider.valueChanged.connect(
-            self._canvas_wrapper.update_from_slider
+        """Connects the control signals to their corresponding slots"""
+
+        # Trigers canvas update function when slider value changes
+        self._play_pause_controls.position_slider.valueChanged.connect(
+            self._canvas_wrapper._update_from_slider
         )
-        self._play_pause_controls.playButton.clicked.connect(self.playButtonPressEvent)
+        self._play_pause_controls.play_button.clicked.connect(self.playButtonPressEvent)
         self.play_timer.timeout.connect(self.increment_slider)
 
-    def update_meshdata_progress(self, _):
+    def _update_meshdata_progress(self, _):
+        """Updates the progress bar to reflect the progress of meshdata caluclation and extends
+        the range of the slider to allow newly calculated frames to be selected.
+        """
 
+        # Extends slider when new meshdata has been calculated
         self._play_pause_controls.slider_max += 1
-        self._play_pause_controls.positionSlider.setMaximum(
+        self._play_pause_controls.position_slider.setMaximum(
             self._play_pause_controls.slider_max
         )
-        self._play_pause_controls.progressBar.setValue(
+        self._play_pause_controls.progress_bar.setValue(
             self._play_pause_controls.slider_max
         )
 
     def increment_slider(self):
+        """Increments the slider while visualizer is playing, triggering an update of the canvas scene"""
 
-        current_val = self._play_pause_controls.positionSlider.value()
+        current_val = self._play_pause_controls.position_slider.value()
 
+        # Visualization is paused once the end of the simulation is reached
         if current_val < self._play_pause_controls.slider_max:
 
-            self._play_pause_controls.positionSlider.setValue(current_val + 1)
+            self._play_pause_controls.position_slider.setValue(current_val + 1)
 
             if current_val + 1 >= self._play_pause_controls.slider_max:
-                self.playButtonPressEvent()
+                self.play_buttonPressEvent()
 
     def set_pbar_length(self, value):
-        self._play_pause_controls.progressBar.setMaximum(value - 1)
+        """Sets the length of the progress bar"""
+        self._play_pause_controls.progress_bar.setMaximum(value - 1)
 
     def playButtonPressEvent(self):
+        """Event logic for when play/pause button is pressed"""
 
         if not self.is_playing:
-            self._play_pause_controls.playButton.setIcon(
+            self._play_pause_controls.play_button.setIcon(
                 self.style().standardIcon(QtWidgets.QStyle.SP_MediaPause)
             )
             self.play_timer.start()
             self.is_playing = True
 
         elif self.is_playing:
-            self._play_pause_controls.playButton.setIcon(
+            self._play_pause_controls.play_button.setIcon(
                 self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay)
             )
             self.play_timer.stop()
             self.is_playing = False
 
     def closeEvent(self, event):
-        print("Closing main window!")
+        """Signals data threads to stop on closing of window"""
         self.closing.emit()
         return super().closeEvent(event)
 
 
-class DataSource(QtCore.QObject):
-    """Object representing a complex data producer."""
+class MeshdataSource(QtCore.QObject):
+    """QT Object which calculates the meshdata for the objects in the simulation"""
 
     new_data = QtCore.pyqtSignal(dict)
     finished = QtCore.pyqtSignal()
@@ -448,15 +542,15 @@ class DataSource(QtCore.QObject):
         self._num_iters = len(self.visualization_dict["time"])
 
     def run_data_creation(self):
-        print("Run data creation is starting")
 
+        # Iterates through each time step of the simulation
         for i in range(self._num_iters):
             if self._should_end:
-                print("Data source saw that it was told to stop")
                 break
 
             data_dict = {"objects": {}}
 
+            # Iterates through each object in simulation and calculates meshdata
             for num, object in enumerate(self.visualization_dict["objects"]):
 
                 object_parameters = self.visualization_dict["objects"][object]
@@ -474,11 +568,14 @@ class DataSource(QtCore.QObject):
                         points=object_position,
                         radius=object_radius,
                         closed=is_closed,
+                        color=color,
                     )._meshdata
 
                     data_dict["objects"][f"{object}_{num}"] = tube_meshdata
 
             data_dict["time"] = self.visualization_dict["time"][i]
+
+            # Emits calculated meshdata to be stored in meshdata cache in CanvasWrapper class
             self.new_data.emit(data_dict)
 
         print("Data source finishing")
@@ -489,6 +586,61 @@ class DataSource(QtCore.QObject):
         self._should_end = True
 
 
+class VisualizerGUI:
+    """Visualizer class that wraps all GUI funcitonality"""
+
+    def __init__(self, visualization_dict, canvas, app=None, win=None) -> None:
+
+        # If no app instance has been passed create a new one
+        if app is None:
+            self.app = use_app("pyqt5")
+            self.app.create()
+
+        else:
+            self.app = app
+
+        # If no GUI window instance has been passed, create a new one
+        if win is None:
+            self.win = GUIMainWindow(canvas)
+            self.win.set_pbar_length(canvas.data_length)
+
+        else:
+            self.win = win
+
+        self.canvas = canvas
+        self._connect_data_source()
+
+    def run(self):
+
+        self.win.show()
+        self.data_thread.start()
+        self.app.run()
+
+        print("Waiting for data source to close gracefully...")
+        self.data_thread.wait(5000)
+
+    def _connect_data_source(self):
+
+        # Create meshdata source and move it to new thread
+        self.data_thread = QtCore.QThread(parent=self.win)
+        self.data_source = MeshdataSource(visualization_dict)
+        self.data_source.moveToThread(self.data_thread)
+
+        # update the visualization when there is new data
+        self.data_source.new_data.connect(self.canvas._update_cache)
+        self.data_source.new_data.connect(self.win._update_meshdata_progress)
+        # start data generation when the thread is started
+        self.data_thread.started.connect(self.data_source.run_data_creation)
+        # if the data source finishes before the window is closed, kill the thread
+        self.data_source.finished.connect(
+            self.data_thread.quit, QtCore.Qt.DirectConnection
+        )
+        # if the window is closed, tell the data source to stop
+        self.win.closing.connect(self.data_source.stop_data, QtCore.Qt.DirectConnection)
+        # when the thread has ended, delete the data source from memory
+        self.data_thread.finished.connect(self.data_source.deleteLater)
+
+
 if __name__ == "__main__":
 
     with open("examples/ContinuumSnakeCase/continuum_snake.dat", "rb") as f:
@@ -496,38 +648,44 @@ if __name__ == "__main__":
 
     visualization_dict = generate_visualization_dict(postprocessing_dict)
 
-    app = use_app("pyqt5")
-    app.create()
+    canvas = CanvasWrapper(visualization_dict)
+    canvas.add_axis("z")
+    canvas.add_axis("x")
+    canvas.turntable_camera()
 
-    canvas_wrapper = CanvasWrapper(visualization_dict)
-    canvas_wrapper.add_axis("z")
-    canvas_wrapper.add_axis("x")
-    canvas_wrapper.turntable_camera()
-    # canvas_wrapper.add_time()
-    win = GUIMainWindow(canvas_wrapper)
-    win.set_pbar_length(canvas_wrapper.data_length)
+    Visualizer = VisualizerGUI(visualization_dict, canvas)
+    Visualizer.run()
+    # app = use_app("pyqt5")
+    # app.create()
 
-    data_thread = QtCore.QThread(parent=win)
-    data_source = DataSource(visualization_dict)
-    data_source.moveToThread(data_thread)
+    # canvas_wrapper = CanvasWrapper(visualization_dict)
+    # win = GUIMainWindow(canvas_wrapper)
+    # win.set_pbar_length(canvas_wrapper.data_length)
 
-    # update the visualization when there is new data
-    ##### data_source.new_data.connect(canvas_wrapper.update_data)
+    # canvas_wrapper.add_axis("z")
+    # canvas_wrapper.add_axis("x")
+    # canvas_wrapper.turntable_camera()
 
-    data_source.new_data.connect(canvas_wrapper.update_cache)
-    data_source.new_data.connect(win.update_meshdata_progress)
-    # start data generation when the thread is started
-    data_thread.started.connect(data_source.run_data_creation)
-    # if the data source finishes before the window is closed, kill the thread
-    data_source.finished.connect(data_thread.quit, QtCore.Qt.DirectConnection)
-    # if the window is closed, tell the data source to stop
-    win.closing.connect(data_source.stop_data, QtCore.Qt.DirectConnection)
-    # when the thread has ended, delete the data source from memory
-    data_thread.finished.connect(data_source.deleteLater)
+    # # Create meshdata source and move it to new thread
+    # data_thread = QtCore.QThread(parent=win)
+    # data_source = MeshdataSource(visualization_dict)
+    # data_source.moveToThread(data_thread)
 
-    win.show()
-    data_thread.start()
-    app.run()
+    # # update the visualization when there is new data
+    # data_source.new_data.connect(canvas_wrapper._update_cache)
+    # data_source.new_data.connect(win._update_meshdata_progress)
+    # # start data generation when the thread is started
+    # data_thread.started.connect(data_source.run_data_creation)
+    # # if the data source finishes before the window is closed, kill the thread
+    # data_source.finished.connect(data_thread.quit, QtCore.Qt.DirectConnection)
+    # # if the window is closed, tell the data source to stop
+    # win.closing.connect(data_source.stop_data, QtCore.Qt.DirectConnection)
+    # # when the thread has ended, delete the data source from memory
+    # data_thread.finished.connect(data_source.deleteLater)
 
-    print("Waiting for data source to close gracefully...")
-    data_thread.wait(5000)
+    # win.show()
+    # data_thread.start()
+    # app.run()
+
+    # print("Waiting for data source to close gracefully...")
+    # data_thread.wait(5000)
